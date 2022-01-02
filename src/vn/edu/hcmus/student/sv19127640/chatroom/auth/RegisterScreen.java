@@ -1,13 +1,12 @@
-package vn.edu.hcmus.student.sv19127640.chatroom;
+package vn.edu.hcmus.student.sv19127640.chatroom.auth;
+
+import vn.edu.hcmus.student.sv19127640.chatroom.auth.Account;
+import vn.edu.hcmus.student.sv19127640.chatroom.auth.LoginScreen;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom

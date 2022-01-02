@@ -1,4 +1,4 @@
-package vn.edu.hcmus.student.sv19127640.chatroom;
+package vn.edu.hcmus.student.sv19127640.chatroom.auth;
 
 import java.io.*;
 

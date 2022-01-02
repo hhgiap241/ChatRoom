@@ -1,12 +1,11 @@
-package vn.edu.hcmus.student.sv19127640.chatroom;
+package vn.edu.hcmus.student.sv19127640.chatroom.auth;
+
+import vn.edu.hcmus.student.sv19127640.chatroom.client.ClientSide;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.Connection;
 
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom
@@ -106,7 +105,9 @@ public class LoginScreen extends JFrame implements ActionListener {
             account.setUsername(username);
             account.setPassword(password);
             if (account.isValidAccount()){
-                JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Success");
+                ClientSide clientSide = new ClientSide();
+                clientSide.showGUI();
+                this.dispose();
             }else{
                 JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Wrong username or password. Please check again!!!");
             }
