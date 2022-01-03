@@ -1,6 +1,7 @@
 package vn.edu.hcmus.student.sv19127640.chatroom.server;
 
 
+import vn.edu.hcmus.student.sv19127640.chatroom.auth.Account;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
@@ -8,6 +9,8 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -33,13 +36,14 @@ public class ServerSide extends JPanel implements ActionListener {
     private JLabel statusText;
     private JLabel numOfUserLabel;
     private JLabel numOfUserText;
-    private ArrayList<Socket> userList;
-    private ServerService serverService;
+    private int numberOfUser;
+    static ArrayList<ServerService> userList; // danh sach cac user online
     private ServerSocket serverSocket;
-    private boolean isStop;
+    Thread thread;
+
+
 
     public ServerSide() {
-
         setUPGUI();
     }
 
@@ -58,7 +62,8 @@ public class ServerSide extends JPanel implements ActionListener {
 
     private void setUPGUI() {
         this.userList = new ArrayList<>();
-        isStop = false;
+
+        numberOfUser = 0;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         header = new JLabel("SERVER MANAGEMENT");
         header.setFont(new Font("Arial", Font.BOLD, 25));
@@ -67,7 +72,7 @@ public class ServerSide extends JPanel implements ActionListener {
         add(header);
         JPanel configPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5,5,5,5);
+        gbc.insets = new Insets(5, 5, 5, 5);
         hostLabel = new JLabel("IP Address: ");
         hostField = new JTextField(30);
         hostField.setText("127.0.0.1");
@@ -93,10 +98,10 @@ public class ServerSide extends JPanel implements ActionListener {
         statusText.setForeground(Color.red);
         numOfUserLabel = new JLabel("Number of Users: ");
         numOfUserLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        numOfUserText = new JLabel("0");
+        numOfUserText = new JLabel(String.valueOf(numberOfUser));
         numOfUserText.setFont(new Font("Arial", Font.BOLD, 20));
         GridBagConstraints gbc_1 = new GridBagConstraints();
-        gbc_1.insets = new Insets(5,5,5,5);
+        gbc_1.insets = new Insets(5, 5, 5, 5);
         gbc_1.anchor = GridBagConstraints.EAST;
         gbc_1.gridx = 0;
         gbc_1.gridy = 0;
@@ -112,7 +117,7 @@ public class ServerSide extends JPanel implements ActionListener {
         infoPanel.setBorder(new TitledBorder("Server Info"));
 
         JPanel headerPanel = new JPanel();
-        Dimension dim = new Dimension(700,200);
+        Dimension dim = new Dimension(700, 200);
         headerPanel.setSize(dim);
         headerPanel.setMinimumSize(dim);
         headerPanel.setMaximumSize(dim);
@@ -123,7 +128,7 @@ public class ServerSide extends JPanel implements ActionListener {
         add(headerPanel);
 
         JPanel manualPanel = new JPanel();
-        dim = new Dimension(600,50);
+        dim = new Dimension(600, 50);
         manualPanel.setSize(dim);
         manualPanel.setMinimumSize(dim);
         manualPanel.setMaximumSize(dim);
@@ -135,7 +140,7 @@ public class ServerSide extends JPanel implements ActionListener {
         stopBtn = new JButton("Stop Server");
         buttonPanel.add(startBtn);
         startBtn.addActionListener(this);
-        buttonPanel.add(Box.createRigidArea(new Dimension(30,10)));
+        buttonPanel.add(Box.createRigidArea(new Dimension(30, 10)));
         buttonPanel.add(stopBtn);
         stopBtn.setEnabled(false);
         stopBtn.addActionListener(this);
@@ -154,7 +159,34 @@ public class ServerSide extends JPanel implements ActionListener {
     }
 
     public static void main(String[] args) {
-        showGUI();
+        EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                showGUI();
+            }
+        });
+    }
+
+    /**
+     * update online users to another users
+     */
+    public static void updateOnlineUser() {
+        // create a string that contains all online user and each user separated by |
+        String message = null;
+        for (ServerService service : ServerSide.userList) {
+            message += service.getUsername() + "|";
+        }
+        // send this message to every online users
+        for (ServerService service: ServerSide.userList){
+            try {
+                service.getDataOutputStream().writeUTF("!updateonlineuser");
+                service.getDataOutputStream().writeUTF(message);
+                service.getDataOutputStream().flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
 
     @Override
@@ -163,7 +195,7 @@ public class ServerSide extends JPanel implements ActionListener {
             try {
                 int port = Integer.parseInt(portField.getText());
                 serverSocket = new ServerSocket(port);
-                Thread thread = new Thread() {
+                thread = new Thread() {
                     public void run() {
                         try {
                             hostField.setEditable(false);
@@ -173,30 +205,69 @@ public class ServerSide extends JPanel implements ActionListener {
                             textPane.setText(textPane.getText() + "\nListening on port " + port + "...");
                             statusText.setText("ON");
                             statusText.setForeground(Color.GREEN);
-                            while(!isStop){
+                            while (true) {
                                 Socket socket = serverSocket.accept();
-                                userList.add(socket);
-                                serverService = new ServerService(textPane, socket, userList);
+                                numOfUserText.setText(String.valueOf(numberOfUser));
+                                DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+                                DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
                                 textPane.setText(textPane.getText() + "\nConnected to client " + socket.getPort());
+
+                                String requestFromUser = dataInputStream.readUTF();
+
+                                if (requestFromUser.equals("!login")) {
+                                    String username = dataInputStream.readUTF();
+                                    String password = dataInputStream.readUTF();
+                                    Account account = new Account(username, password);
+                                    // check username and password
+                                    if (account.isValidAccount()) {
+                                        dataOutputStream.writeUTF("!successlogin");
+                                        dataOutputStream.flush();
+                                        ServerService service = new ServerService(username, password, socket);
+                                        userList.add(service);
+                                        // update cac user online
+                                        ServerSide.updateOnlineUser();
+                                        Thread thread = new Thread(service);
+                                        thread.start();
+                                    } else {
+                                        dataOutputStream.writeUTF("!faillogin");
+                                        dataOutputStream.flush();
+                                    }
+                                } else if (requestFromUser.equals("!signup")) {
+                                    String username = dataInputStream.readUTF();
+                                    String password1 = dataInputStream.readUTF();
+                                    String password2 = dataInputStream.readUTF();
+                                    Account account = new Account(username, password1);
+                                    if(!account.isExistUsername()){ // kiem tra username da ton tai hay chua
+                                        // kiem tra 2 password co trung nhau k
+                                        if (password1.equals(password2)){
+                                            // dang ky thanh cong
+                                            account.saveToFile();
+                                            dataOutputStream.writeUTF("!successsignup");
+                                            dataOutputStream.flush();
+                                        }else{
+                                            // 2 password khong trung nhau
+                                            dataOutputStream.writeUTF("!passdontmatch");
+                                            dataOutputStream.flush();
+                                        }
+                                    } else {
+                                        // username da ton tai trong he thong
+                                        dataOutputStream.writeUTF("!existsusername");
+                                        dataOutputStream.flush();
+                                    }
+                                }
                             }
                         } catch (IOException ex) {
-//                            System.out.println("q" + Thread.currentThread());
-                            Thread.currentThread().stop();
-                            JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Error: " + ex.getMessage());
-                            ex.printStackTrace();
                         }
                     }
                 };
                 thread.start();
-//                System.out.println(thread);
+                System.out.println("Start" + thread);
             } catch (IOException ioException) {
                 JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Error: " + ioException.getMessage());
                 ioException.printStackTrace();
             }
-        }else if(e.getSource() == stopBtn){
+        } else if (e.getSource() == stopBtn) {
             try {
-                isStop = true;
-                serverSocket.close();
                 startBtn.setEnabled(true);
                 stopBtn.setEnabled(false);
                 statusText.setText("OFF");
@@ -204,6 +275,9 @@ public class ServerSide extends JPanel implements ActionListener {
                 hostField.setEditable(true);
                 portField.setEditable(true);
                 textPane.setText(textPane.getText() + "\nConnection is closed!!!");
+
+                serverSocket.close();
+                System.out.println("Stop" + thread);
             } catch (IOException ex) {
                 ex.printStackTrace();
             }

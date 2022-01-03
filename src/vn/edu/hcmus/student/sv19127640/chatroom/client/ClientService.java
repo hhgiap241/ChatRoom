@@ -36,6 +36,7 @@ class ClientService implements ActionListener {
         this.messageLabel = messageLabel;
         this.dataInputStream = new DataInputStream(socket.getInputStream());
         this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
+        dataOutputStream.writeUTF(name+"|"+socket);
         receive();
     }
 
@@ -65,8 +66,6 @@ class ClientService implements ActionListener {
         Thread thread = new Thread() {
             public void run() {
                 String current = textPane.getText();
-
-
                 textPane.setText(current + "\nSent: " + message);
                 try {
                     dataOutputStream.writeUTF(name + ": " + message);

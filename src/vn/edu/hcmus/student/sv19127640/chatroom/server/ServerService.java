@@ -11,81 +11,76 @@ import java.util.ArrayList;
  * vn.edu.hcmus.student.sv19127640.chatroom.server
  * Created by ADMIN
  * Date 1/2/2022 - 10:32 AM
- * Description: ...
+ * Description: provide server for every login user
  */
-class ServerService {
+class ServerService implements Runnable{
     private Socket socket;
-    private JTextPane textPane;
-    private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
-    private ArrayList<Socket> userList;
+    private DataInputStream dataInputStream;
+    private String username;
+    private String password;
 
-    public ServerService(JTextPane textPane, Socket socket, ArrayList<Socket> userList) throws IOException {
+    public ServerService(String username, String password, Socket socket) throws IOException {
         this.socket = socket;
-        this.userList = userList;
-        this.textPane = textPane;
-
-        receive();
+        this.username = username;
+        this.password = password;
+        this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
+        this.dataInputStream = new DataInputStream(socket.getInputStream());
     }
 
-    public void receive() {
-        Thread thread = new Thread() {
-            public void run() {
-                while (true) {
-                    try {
-                        dataInputStream = new DataInputStream(socket.getInputStream());
-                        String line = dataInputStream.readUTF();
-                        if (line.contains("exit")) {
-                            userList.remove(socket);
-                            textPane.setText(textPane.getText() + "\n" + "Disconnected to client " + socket);
-                            close();
-                            continue;
-                        }
-                        if (line != null) {
-                            for (Socket item : userList) {
-                                if (item.getPort() != socket.getPort()) {
-                                    dataOutputStream = new DataOutputStream(item.getOutputStream());
-                                    dataOutputStream.writeUTF(line);
-                                }
-                            }
-                            textPane.setText(textPane.getText() + "\n" + line);
-                        }
-                    } catch (Exception e) {
-                        try {
-                            close();
-                        } catch (IOException ex) {
-                            ex.printStackTrace();
+
+    @Override
+    public void run() {
+        while(true){
+            String message = null;
+            try {
+                message = dataInputStream.readUTF();
+                if (message.equals("!text")){ // gui tin nhan dang text
+                    String destinationUser = dataInputStream.readUTF(); // doc ten nguoi nhan
+                    String content = dataInputStream.readUTF(); // doc noi dung tin nhan
+                    // tim nguoi nhan trong danh sach online user
+                    for (ServerService service: ServerSide.userList){
+                        if (service.getUsername().equals(destinationUser)){
+                            // send back
+                            service.getDataOutputStream().writeUTF("!text");
+                            service.getDataOutputStream().writeUTF(this.username);
+                            service.getDataOutputStream().writeUTF(content);
+                            service.getDataOutputStream().flush();
+                            break;
                         }
                     }
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        };
-        thread.start();
+
+        }
     }
 
-    public void send(String message) {
-        Thread thread = new Thread() {
-            public void run() {
-                String current = textPane.getText();
-                textPane.setText(current + "\nSent: " + message);
-                try {
-                    for (Socket item: userList){
-                        dataOutputStream = new DataOutputStream(item.getOutputStream());
-                        dataOutputStream.writeUTF("Server: " + message);
-                        dataOutputStream.flush();
-                    }
-                } catch (IOException e) {
-                    try {
-                        close();
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                    }
-                }
-            }
-        };
-        thread.start();
+    public Socket getSocket() {
+        return socket;
     }
 
+    public DataOutputStream getDataOutputStream() {
+        return dataOutputStream;
+    }
+
+    public DataInputStream getDataInputStream() {
+        return dataInputStream;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    /**
+     * close connection
+     * @throws IOException exception
+     */
     public void close() throws IOException {
         dataInputStream.close();
         dataOutputStream.close();

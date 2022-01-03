@@ -7,7 +7,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom
  * Created by ADMIN
@@ -27,11 +30,16 @@ public class RegisterScreen extends JFrame implements ActionListener {
     private JButton loginBtn;
     private JButton cancelBtn;
     private JButton submitBtn;
-    private Account account;
+    private Socket socket;
+    private DataInputStream dataInputStream;
+    private DataOutputStream dataOutputStream;
+    private JLabel hostLabel;
+    private JTextField hostField;
+    private JLabel portLable;
+    private JTextField portField;
 
     public RegisterScreen(){
         Container container = this.getContentPane();
-        account = new Account();
         registerPanel = new JPanel(new GridBagLayout());
         usernameLabel = new JLabel("Username: ");
         usernameText = new JTextField(10);
@@ -47,6 +55,12 @@ public class RegisterScreen extends JFrame implements ActionListener {
         cancelBtn.addActionListener(this);
         loginBtn = new JButton("Go to login page");
         loginBtn.addActionListener(this);
+        hostLabel = new JLabel("Host address: ");
+        hostField = new JTextField(10);
+        hostField.setText("127.0.0.1");
+        portLable = new JLabel("Port: ");
+        portField = new JTextField(10);
+        portField.setText("3000");
 
         header = new JLabel("REGISTRATION FORM", SwingConstants.CENTER);
         header.setFont(header.getFont().deriveFont (18.0f));
@@ -56,17 +70,21 @@ public class RegisterScreen extends JFrame implements ActionListener {
         gbc.insets = new Insets(5,5,5,5);
         gbc.gridy = 1;
         gbc.gridx = 0;
-        registerPanel.add(usernameLabel, gbc);
+        registerPanel.add(hostLabel, gbc);
         gbc.gridy = 2;
-        registerPanel.add(passwordLabel, gbc);
+        registerPanel.add(portLable, gbc);
         gbc.gridy = 3;
+        registerPanel.add(usernameLabel, gbc);
+        gbc.gridy = 4;
+        registerPanel.add(passwordLabel, gbc);
+        gbc.gridy = 5;
         registerPanel.add(confirmPasswordLabel, gbc);
 
-        gbc.gridy = 4;
+        gbc.gridy = 6;
         gbc.gridx = 2;
         registerPanel.add(showPass, gbc);
 
-        gbc.gridy = 5;
+        gbc.gridy = 7;
         gbc.gridx = 1;
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.PAGE_AXIS));
@@ -84,10 +102,14 @@ public class RegisterScreen extends JFrame implements ActionListener {
         gbc.gridx = 1;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        registerPanel.add(usernameText, gbc);
+        registerPanel.add(hostField, gbc);
         gbc.gridy = 2;
-        registerPanel.add(passwordText, gbc);
+        registerPanel.add(portField, gbc);
         gbc.gridy = 3;
+        registerPanel.add(usernameText, gbc);
+        gbc.gridy = 4;
+        registerPanel.add(passwordText, gbc);
+        gbc.gridy = 5;
         registerPanel.add(confirmPasswordText, gbc);
 
 
@@ -96,15 +118,15 @@ public class RegisterScreen extends JFrame implements ActionListener {
         gbc.gridwidth = 3;
         registerPanel.add(header, gbc);
 
-        gbc.gridy = 6;
+        gbc.gridy = 8;
         registerPanel.add(loginBtn, gbc);
 
 
         container.add(registerPanel);
-        this.setTitle("Login");
+        this.setTitle("Register");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true);
-        this.setSize(500, 300);
+        this.setSize(500, 350);
     }
 
 
@@ -120,19 +142,38 @@ public class RegisterScreen extends JFrame implements ActionListener {
             if (username.length() == 0 || password1.length() == 0 || password2.length() == 0){
                 JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Please fill out all input field!");
             }
-            account.setUsername(username);
-            account.setPassword(password1);
-            if (account.isExistUsername()){
-                JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "This username is already exists!");
-            }else{
-                if (!password1.equals(password2)){
-                    JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Two passwords don't match. Please check again!");
-                }else{ // success
-                    account.saveToFile();
-                    JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Create new account successfully!");
-                    // redirect to login screen
-                    this.dispose();
-                    new LoginScreen();
+            else {
+                try {
+                    this.socket = new Socket(hostField.getText(), Integer.parseInt(portField.getText()));
+                    this.dataOutputStream = new DataOutputStream(this.socket.getOutputStream());
+                    this.dataInputStream = new DataInputStream(this.socket.getInputStream());
+                    // send request to server
+                    this.dataOutputStream.writeUTF("!signup");
+                    this.dataOutputStream.writeUTF(username);
+                    this.dataOutputStream.writeUTF(password1);
+                    this.dataOutputStream.writeUTF(password2);
+                    this.dataOutputStream.flush();
+                    String resultFromServer = this.dataInputStream.readUTF(); // read respons from server
+                    if (resultFromServer.equals("!successsignup")){
+                        this.dataInputStream.close();
+                        this.dataOutputStream.close();
+                        socket.close();
+                        // redirect to login screen
+                        EventQueue.invokeLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Create new account successfully!");
+                                new LoginScreen();
+                            }
+                        });
+                        this.dispose();
+                    }else if (resultFromServer.equals("!passdontmatch")){
+                        JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Two passwords don't match. Please check again!");
+                    }else if (resultFromServer.equals("!existsusername")){
+                        JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "This username is already exists!");
+                    }
+                } catch (IOException ex) {
+                    ex.printStackTrace();
                 }
             }
         }else if (e.getSource() == showPass){

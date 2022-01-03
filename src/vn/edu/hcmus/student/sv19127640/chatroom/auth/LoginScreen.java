@@ -6,6 +6,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
 
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom
@@ -24,16 +28,29 @@ public class LoginScreen extends JFrame implements ActionListener {
     private JButton loginBtn;
     private JButton cancelBtn;
     private JButton registerBtn;
-    private Account account;
+    private DataInputStream dataInputStream;
+    private DataOutputStream dataOutputStream;
+    private Socket socket;
+    private JLabel hostLabel;
+    private JTextField hostField;
+    private JLabel portLable;
+    private JTextField portField;
+//    private Account account;
 
     public LoginScreen(){
         Container container = this.getContentPane();
-        account = new Account();
+//        account = new Account();
         loginPanel = new JPanel(new GridBagLayout());
         usernameLabel = new JLabel("Username: ");
         usernameText = new JTextField(10);
         passwordLabel = new JLabel("Password: ");
         passwordText = new JPasswordField(10);
+        hostLabel = new JLabel("Host address: ");
+        hostField = new JTextField(10);
+        hostField.setText("127.0.0.1");
+        portLable = new JLabel("Port: ");
+        portField = new JTextField(10);
+        portField.setText("3000");
         showPass = new JCheckBox("Show password");
         showPass.addActionListener(this);
         loginBtn = new JButton("Login");
@@ -51,15 +68,17 @@ public class LoginScreen extends JFrame implements ActionListener {
         gbc.insets = new Insets(5,5,5,5);
         gbc.gridy = 1;
         gbc.gridx = 0;
-        loginPanel.add(usernameLabel, gbc);
+        loginPanel.add(hostLabel, gbc);
         gbc.gridy = 2;
-        loginPanel.add(passwordLabel, gbc);
-
+        loginPanel.add(portLable, gbc);
         gbc.gridy = 3;
+        loginPanel.add(usernameLabel, gbc);
+        gbc.gridy = 4;
+        loginPanel.add(passwordLabel, gbc);
+        gbc.gridy = 5;
         gbc.gridx = 2;
         loginPanel.add(showPass, gbc);
-
-        gbc.gridy = 4;
+        gbc.gridy = 6;
         gbc.gridx = 1;
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.PAGE_AXIS));
@@ -77,14 +96,18 @@ public class LoginScreen extends JFrame implements ActionListener {
         gbc.gridx = 1;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        loginPanel.add(usernameText, gbc);
+        loginPanel.add(hostField, gbc);
         gbc.gridy = 2;
+        loginPanel.add(portField, gbc);
+        gbc.gridy = 3;
+        loginPanel.add(usernameText, gbc);
+        gbc.gridy = 4;
         loginPanel.add(passwordText, gbc);
         gbc.gridy = 0;
         gbc.gridx = 0;
         gbc.gridwidth = 3;
         loginPanel.add(header, gbc);
-        gbc.gridy = 5;
+        gbc.gridy = 7;
         loginPanel.add(registerBtn, gbc);
 
         container.add(loginPanel);
@@ -102,14 +125,30 @@ public class LoginScreen extends JFrame implements ActionListener {
         }else if (e.getSource() == loginBtn){
             String username = usernameText.getText();
             String password = String.valueOf(passwordText.getPassword());
-            account.setUsername(username);
-            account.setPassword(password);
-            if (account.isValidAccount()){
-                ClientSide clientSide = new ClientSide();
-                clientSide.showGUI();
-                this.dispose();
-            }else{
-                JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Wrong username or password. Please check again!!!");
+            try {
+                this.socket = new Socket(hostField.getText(), Integer.parseInt(portField.getText()));
+                this.dataInputStream = new DataInputStream(socket.getInputStream());
+                this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
+                this.dataOutputStream.writeUTF("!login");
+                this.dataOutputStream.writeUTF(username);
+                this.dataOutputStream.writeUTF(password);
+                this.dataOutputStream.flush();
+                String resultFromServer = this.dataInputStream.readUTF();
+                if (resultFromServer.equals("!successlogin")){
+                    // redirect to main page
+                    EventQueue.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            ClientSide.showGUI(username, socket, dataInputStream, dataOutputStream, hostField.getText(), portField.getText());
+                        }
+                    });
+                    this.dispose();
+                }else if (resultFromServer.equals("!faillogin")){
+                    JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Error: Invalid account");
+                }
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Error: " + ex.getMessage());
+                ex.printStackTrace();
             }
         }else if (e.getSource() == showPass){
             if (showPass.isSelected())
