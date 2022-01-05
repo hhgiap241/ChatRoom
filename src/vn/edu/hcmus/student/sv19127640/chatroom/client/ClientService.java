@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.Socket;
+import java.util.Vector;
 
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom.client
@@ -14,7 +15,7 @@ import java.net.Socket;
  */
 class ClientService implements ActionListener {
     private Socket socket;
-    private String name;
+    private String username;
     private JTextPane textPane;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
@@ -23,20 +24,27 @@ class ClientService implements ActionListener {
     private JButton sendBtn;
     private JTextArea inputMsg;
     private JLabel messageLabel;
+    private JButton endChatBtn;
+    private JTabbedPane tabbedPane;
+    private JList userList;
 
-    public ClientService(String name, Socket socket, JTextPane msgtextPane, JButton sendFileBtn, JButton sendBtn, JTextArea inputMsg, JLabel messageLabel) throws IOException {
+
+    public ClientService(String username, Socket socket, JTextPane msgtextPane, JButton sendFileBtn, JButton sendBtn, JTextArea inputMsg, JLabel messageLabel, JButton endChatBtn, JTabbedPane tabbedPane, JList userList) throws IOException {
         this.socket = socket;
-        this.name = name;
+        this.tabbedPane = tabbedPane;
+        this.username = username;
         this.textPane = msgtextPane;
         this.sendBtn = sendBtn;
         sendBtn.addActionListener(this);
         this.sendFileBtn = sendFileBtn;
         sendBtn.addActionListener(this);
+        this.endChatBtn = endChatBtn;
+        endChatBtn.addActionListener(this);
         this.inputMsg = inputMsg;
         this.messageLabel = messageLabel;
+        this.userList = userList;
         this.dataInputStream = new DataInputStream(socket.getInputStream());
         this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
-        dataOutputStream.writeUTF(name+"|"+socket);
         receive();
     }
 
@@ -45,9 +53,21 @@ class ClientService implements ActionListener {
             public void run() {
                 while (true) {
                     try {
-                        String line = dataInputStream.readUTF();
-                        if (line != null) {
-                            textPane.setText(textPane.getText() + "\n" + line);
+                        String signal = dataInputStream.readUTF();
+                        System.out.println(signal);
+                        if (signal.equals("!text")) {
+                            String sender = dataInputStream.readUTF();
+                            String content = dataInputStream.readUTF();
+                            textPane.setText(textPane.getText() + "\n" + sender + ": " + content);
+                        } else if (signal.equals("!updateonlineuser")) {
+                            String[] content = dataInputStream.readUTF().split("\\|");
+                            Vector<String> onlineUsers = new Vector<>();
+                            for (int i = 0; i < content.length; i++){
+                                if (!content[i].equals(username))
+                                    onlineUsers.add(content[i]);
+                            }
+                            userList.removeAll(); // remove all from list
+                            userList.setListData(onlineUsers);
                         }
                     } catch (Exception e) {
                         try {
@@ -62,26 +82,20 @@ class ClientService implements ActionListener {
         thread.start();
     }
 
-    public void send(String message) {
-        Thread thread = new Thread() {
-            public void run() {
-                String current = textPane.getText();
-                textPane.setText(current + "\nSent: " + message);
-                try {
-                    dataOutputStream.writeUTF(name + ": " + message);
-                    dataOutputStream.flush();
-                } catch (IOException e) {
-                    try {
-                        close();
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                    }
-                }
-            }
-        };
-        thread.start();
+    public void send(String message, String receiver) {
+        String current = textPane.getText();
+        textPane.setText(current + "\nYou: " + message);
+        try {
+            dataOutputStream.writeUTF("!text");
+            dataOutputStream.writeUTF(receiver);
+            dataOutputStream.writeUTF(message);
+            dataOutputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-    public void sendFile(File fileToSend){
+
+    public void sendFile(File fileToSend) {
         // If a file has not yet been selected then display this message.
         if (fileToSend == null) {
             textPane.setText(textPane.getText() + "\nPlease choose a file to send first!");
@@ -99,7 +113,7 @@ class ClientService implements ActionListener {
                 // Convert the name of the file into an array of bytes to be sent to the server.
                 byte[] fileNameBytes = fileName.getBytes();
                 // Create a byte array the size of the file so don't send too little or too much data to the server.
-                byte[] fileBytes = new byte[(int)fileToSend.length()];
+                byte[] fileBytes = new byte[(int) fileToSend.length()];
                 // Put the contents of the file into the array of bytes to be sent so these bytes can be sent to the server.
                 fileInputStream.read(fileBytes);
                 // Send the length of the name of the file so server knows when to stop reading.
@@ -115,6 +129,7 @@ class ClientService implements ActionListener {
             }
         }
     }
+
     public void close() throws IOException {
         dataInputStream.close();
         dataOutputStream.close();
@@ -123,11 +138,14 @@ class ClientService implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (e.getSource() == sendBtn){
+        if (e.getSource() == sendBtn) {
             textPane.setText(inputMsg.getText());
             System.out.println("Send button clicked");
-        }else if(e.getSource() == sendFileBtn){
+        } else if (e.getSource() == sendFileBtn) {
             System.out.println("Send file clicked");
+        } else if (e.getSource() == endChatBtn) {
+            System.out.println(tabbedPane.getTitleAt(tabbedPane.getSelectedIndex()));
+            tabbedPane.remove(tabbedPane.getSelectedIndex());
         }
     }
 }

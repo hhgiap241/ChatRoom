@@ -31,7 +31,7 @@ public class ServerSide extends JPanel implements ActionListener {
     private JTextField portField;
     private JButton startBtn;
     private JButton stopBtn;
-    private JTextPane textPane;
+    static JTextPane textPane;
     private JLabel statusLabel;
     private JLabel statusText;
     private JLabel numOfUserLabel;
@@ -172,16 +172,18 @@ public class ServerSide extends JPanel implements ActionListener {
      */
     public static void updateOnlineUser() {
         // create a string that contains all online user and each user separated by |
-        String message = null;
+        String message = "";
         for (ServerService service : ServerSide.userList) {
             message += service.getUsername() + "|";
         }
+
         // send this message to every online users
         for (ServerService service: ServerSide.userList){
             try {
                 service.getDataOutputStream().writeUTF("!updateonlineuser");
                 service.getDataOutputStream().writeUTF(message);
                 service.getDataOutputStream().flush();
+                textPane.setText(textPane.getText() + "\n" + message);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -226,6 +228,7 @@ public class ServerSide extends JPanel implements ActionListener {
                                         userList.add(service);
                                         // update cac user online
                                         ServerSide.updateOnlineUser();
+                                        numOfUserText.setText(String.valueOf(userList.size()));
                                         Thread thread = new Thread(service);
                                         thread.start();
                                     } else {
@@ -275,7 +278,7 @@ public class ServerSide extends JPanel implements ActionListener {
                 hostField.setEditable(true);
                 portField.setEditable(true);
                 textPane.setText(textPane.getText() + "\nConnection is closed!!!");
-
+                numOfUserText.setText("0");
                 serverSocket.close();
                 System.out.println("Stop" + thread);
             } catch (IOException ex) {

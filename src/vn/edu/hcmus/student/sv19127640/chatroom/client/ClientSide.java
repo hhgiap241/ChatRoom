@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Vector;
 
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom.client
@@ -27,7 +28,7 @@ import java.net.UnknownHostException;
  */
 
 
-public class ClientSide extends JPanel implements ActionListener {
+public class ClientSide extends JFrame implements ActionListener {
     private JLabel header;
     private JLabel hostLabel;
     private JTextField hostField;
@@ -46,6 +47,7 @@ public class ClientSide extends JPanel implements ActionListener {
 //    private JTextField nameText;
     private JButton sendBtn;
     private JButton sendFileBtn;
+    private JButton refreshListBtn;
     private JLabel userToChatLabel;
     private JTabbedPane tabbedPane;
     private Socket socket;
@@ -53,36 +55,19 @@ public class ClientSide extends JPanel implements ActionListener {
     private String port;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
-    private String[] onlineUsers;
+
     private ClientService clientService;
 
     public ClientSide(String username, Socket socket, DataInputStream dataInputStream, DataOutputStream dataOutputStream, String host, String port) {
+        Container container = this.getContentPane();
         this.username = username;
         this.socket = socket;
         this.dataOutputStream = dataOutputStream;
         this.dataInputStream = dataInputStream;
         this.host = host;
         this.port = port;
-        setUPGUI();
-    }
-
-    public static void showGUI(String username, Socket socket, DataInputStream dataInputStream, DataOutputStream dataOutputStream, String host, String port) {
-        JFrame frame = new JFrame("Chat Box");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        ClientSide clientSide = new ClientSide(username, socket, dataInputStream, dataOutputStream, host, port);
-        clientSide.setOpaque(true);
-        frame.setContentPane(clientSide);
-        frame.pack();
-        frame.setSize(new Dimension(600, 500));
-        frame.setVisible(true);
-        frame.setResizable(false);
-    }
-
-    public static void main(String[] args) {
-        ClientSide.showGUI("abc", null, null, null, "127.0.0.1", "3000");
-    }
-
-    private void setUPGUI() {
+//        setUPGUI();
+        JPanel mainPanel = new JPanel(new BorderLayout());
         JPanel headerPanel = new JPanel(new GridBagLayout());
         setLayout(new BorderLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -129,11 +114,13 @@ public class ClientSide extends JPanel implements ActionListener {
         headerPanel.add(hostLabel, gbc);
         gbc.gridx = 1;
         hostField.setText(host);
+        hostField.setEditable(false);
         headerPanel.add(hostField, gbc);
         gbc.gridx = 2;
         headerPanel.add(portLable, gbc);
         gbc.gridx = 3;
         portField.setText(port);
+        portField.setEditable(false);
         headerPanel.add(portField, gbc);
 
         gbc.gridx = 4;
@@ -147,86 +134,67 @@ public class ClientSide extends JPanel implements ActionListener {
 
         JPanel panel1 = new JPanel(new BorderLayout());
         panel1.add(new JLabel("Online users (click to chat): "), BorderLayout.PAGE_START);
-        userList = new JList(new String[]{"1", "2", "3", "1", "2", "3", "1", "2", "3", "1", "2", "3"});
+        userList = new JList();
         userList.setSelectionMode(DefaultListSelectionModel.SINGLE_INTERVAL_SELECTION);
         JScrollPane scrollPaneInfo = new JScrollPane(userList);
         startChatBtn = new JButton("Start Chat");
         startChatBtn.addActionListener(this);
+        refreshListBtn = new JButton("Refresh Online Users List");
+        refreshListBtn.addActionListener(this);
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.PAGE_AXIS));
+        JPanel footerContent = new JPanel();
+        footerContent.setLayout(new BoxLayout(footerContent, BoxLayout.X_AXIS));
+        footerContent.add(startChatBtn);
+        footerContent.add(Box.createRigidArea(new Dimension(20,0)));
+        footerContent.add(refreshListBtn);
+        buttonPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buttonPanel.add(footerContent);
 
 //        startChatBtn.setEnabled(false);
         panel1.add(scrollPaneInfo, BorderLayout.CENTER);
-        panel1.add(startChatBtn, BorderLayout.PAGE_END);
+        panel1.add(buttonPanel, BorderLayout.PAGE_END);
 
-//        JPanel chatPanel = new JPanel();
-//        chatPanel.setBorder(new EmptyBorder(new Insets(10, 20, 10, 20)));
-//        chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.PAGE_AXIS));
-//        messageLabel = new JLabel("Message: ");
-//
-//        messageLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-//        chatPanel.add(messageLabel);
-//        msgtextPane = new JTextPane();
-//        msgtextPane.setPreferredSize(new Dimension(500,300));
-//        JScrollPane scrollPaneMsg = new JScrollPane(msgtextPane, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-//        chatPanel.add(scrollPaneMsg);
-//
-//        JPanel sendFilePanel = new JPanel();
-//        sendFilePanel.setBorder(new EmptyBorder(new Insets(10, 0, 10, 0)));
-//        sendFilePanel.setLayout(new BoxLayout(sendFilePanel, BoxLayout.X_AXIS));
-//
-//        JLabel noticeLabel = new JLabel("Input your message here");
-//        noticeLabel.setFont(new Font("Arial", Font.ITALIC, 12));
-//        sendFilePanel.add(noticeLabel);
-//        sendFilePanel.add(Box.createRigidArea(new Dimension(20,0)));
-//
-//        sendFileBtn = new JButton("Send File");
-//        sendFilePanel.add(sendFileBtn);
-////        sendFilePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-////        chatPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-//        chatPanel.add(sendFilePanel);
-//
-//        JPanel sendMsgPanel = new JPanel();
-//        sendMsgPanel.setLayout(new BoxLayout(sendMsgPanel, BoxLayout.X_AXIS));
-//        inputMsg = new JTextArea(3,10);
-//        inputMsg.setLineWrap(true);
-//        inputMsg.setWrapStyleWord(true);
-//        inputMsg.setBorder(new LineBorder(Color.black));
-//        sendMsgPanel.add(inputMsg);
-//        sendMsgPanel.add(Box.createRigidArea(new Dimension(20,0)));
-//        sendBtn = new JButton("Send");
-//        sendMsgPanel.add(sendBtn);
-//
-//        chatPanel.add(sendMsgPanel);
-//        chatPanel.setMaximumSize( chatPanel.getPreferredSize() );
+
         tabbedPane = new JTabbedPane();
         tabbedPane.addTab("Setting", null, panel1, "click to show setting");
 //        tabbedPane.addTab("Chat", null, chatPanel, "click to show chat");
-        add(headerPanel, BorderLayout.PAGE_START);
-
-        add(tabbedPane, BorderLayout.CENTER);
+        mainPanel.add(headerPanel, BorderLayout.PAGE_START);
+        mainPanel.add(tabbedPane, BorderLayout.CENTER);
+        container.add(mainPanel);
+        this.setTitle("Chat Box");
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setVisible(true);
+        this.setResizable(false);
+        this.setSize(new Dimension(600, 500));
+        // update online users list for new user
+        try {
+            if (dataInputStream.readUTF().equals("!updateonlineuser")) {
+                String[] content = dataInputStream.readUTF().split("\\|");
+                Vector<String> onlineUsers = new Vector<>();
+                for (int i = 0; i < content.length; i++) {
+                    if (!content[i].equals(username))
+                        onlineUsers.add(content[i]);
+                }
+                userList.setListData(onlineUsers);
+            }
+        } catch (IOException exception) {
+            exception.printStackTrace();
+        }
     }
-
 
     @Override
     public void actionPerformed(ActionEvent e) {
-//        if (e.getSource() == connectBtn) {
-//            try {
-////                nameText.setEditable(false);
-//                String host = hostField.getText();
-//                int port = Integer.parseInt(portField.getText());
-//                socket = new Socket(host, port);
-//                startChatBtn.setEnabled(true);
-//                connectBtn.setEnabled(false);
-//            } catch (UnknownHostException unknownHostException) {
-//                unknownHostException.printStackTrace();
-//            } catch (IOException ioException) {
-//                ioException.printStackTrace();
-//            }
-//        } else
         if (e.getSource() == startChatBtn) {
-            tabbedPane.addTab("abc", null, createNewTab());
+            if (userList.getSelectedIndex() == -1){
+                JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Error: Please choose one user to chat!");
+                return;
+            }
+            String selectedUser = (String) userList.getSelectedValue();
+            tabbedPane.addTab(selectedUser, null, createNewTab());
             try {
-                clientService = new ClientService(username, socket, msgtextPane, sendFileBtn, sendBtn, inputMsg, messageLabel);
-                msgtextPane.setText(msgtextPane.getText() + "\nConnected to server");
+                clientService = new ClientService(username, socket, msgtextPane, sendFileBtn, sendBtn, inputMsg, messageLabel, endChatBtn, tabbedPane, userList);
+//                msgtextPane.setText(msgtextPane.getText() + "\nConnected to server");
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
@@ -235,6 +203,20 @@ public class ClientSide extends JPanel implements ActionListener {
             Window win = SwingUtilities.getWindowAncestor(comp);
             win.dispose();
             LoginScreen loginScreen = new LoginScreen();
+        } else if (e.getSource() == refreshListBtn){
+            try {
+                if (dataInputStream.readUTF().equals("!updateonlineuser")){
+                    String[] content = dataInputStream.readUTF().split("\\|");
+                    Vector<String> onlineUsers = new Vector<>();
+                    for (int i = 0; i < content.length; i++){
+                        if (!content[i].equals(username))
+                            onlineUsers.add(content[i]);
+                    }
+                    userList.setListData(onlineUsers);
+                }
+            } catch (IOException exception) {
+                exception.printStackTrace();
+            }
         }
     }
 

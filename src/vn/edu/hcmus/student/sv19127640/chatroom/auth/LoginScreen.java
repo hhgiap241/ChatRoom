@@ -139,7 +139,8 @@ public class LoginScreen extends JFrame implements ActionListener {
                     EventQueue.invokeLater(new Runnable() {
                         @Override
                         public void run() {
-                            ClientSide.showGUI(username, socket, dataInputStream, dataOutputStream, hostField.getText(), portField.getText());
+//                            ClientSide clientSide = new ClientSide();
+                            new ClientSide(username, socket, dataInputStream, dataOutputStream, hostField.getText(), portField.getText());
                         }
                     });
                     this.dispose();
