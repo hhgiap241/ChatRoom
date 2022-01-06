@@ -6,6 +6,7 @@ import vn.edu.hcmus.student.sv19127640.chatroom.auth.LoginScreen;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.event.HyperlinkEvent;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -130,6 +131,8 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
                                     fileOutputStream.write(fileContentBytes);
                                     // Close the stream.
                                     fileOutputStream.close();
+                                    msgtextPane = messagePaneMap.get(sender);
+                                    msgtextPane.setText(msgtextPane.getText() + "\n" + sender + ": " + fileName + " (click to download)");
                                 }
                             }
                         } catch (IOException e) {
@@ -184,15 +187,7 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         portField = new JTextField(10);
         connectBtn = new JButton("Connected");
         logoutBtn = new JButton("Log out");
-//        msgtextPane = new JTextPane();
-//        msgtextPane.setPreferredSize(new Dimension(500,300));
-//        infotextPane = new JTextPane();
-//        infotextPane.setPreferredSize(new Dimension(500,300));
-//        JScrollPane scrollPaneInfo = new JScrollPane(infotextPane, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-//        messageLabel = new JLabel("Message: ");
-//        inputMsg = new JTextArea(3, 70);
-//        sendBtn = new JButton("Send");
-//        sendFileBtn = new JButton("Send File");
+
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -202,13 +197,6 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         headerPanel.add(header, gbc);
 
         gbc.gridwidth = 1;
-//        gbc.gridy = 1;
-//        headerPanel.add(nameLabel, gbc);
-//        gbc.gridwidth = 4;
-//        gbc.gridx = 1;
-//        headerPanel.add(nameText, gbc);
-
-//        gbc.gridwidth = 1;
         gbc.gridx = 0;
         gbc.gridy = 1;
 
@@ -347,6 +335,7 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
             // Send the actual file.
             dataOutputStream.write(fileBytes);
             dataOutputStream.flush();
+            msgtextPane.setText(msgtextPane.getText() + "\nYou: " + fileName);
         } catch (IOException ex) {
             ex.printStackTrace();
         }
