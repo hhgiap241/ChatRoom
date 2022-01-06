@@ -23,7 +23,7 @@ import java.util.HashMap;
  */
 
 
-public class ClientSide extends JFrame implements ActionListener, ItemListener {
+public class ClientSide extends JFrame implements ActionListener, ItemListener, WindowListener {
     private JLabel header;
     private JLabel hostLabel;
     private JTextField hostField;
@@ -33,7 +33,6 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
     private JButton logoutBtn;
     private JTextPane msgtextPane;
     private JScrollPane scrollPane;
-//    private JButton endChatBtn;
     private JLabel messageLabel;
     private JTextArea inputMsg;
     private String username;
@@ -47,9 +46,7 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
     private ArrayList<String> chattingList;
     private JLabel onlineUserLabel;
     private JComboBox<String> onlineUserList;
-
     private HashMap<String, JTextPane> messagePaneMap;
-
 
     class receiveMessage implements Runnable {
         private DataInputStream dataInputStream;
@@ -63,7 +60,6 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
             while (true) {
                 try {
                     String signal = this.dataInputStream.readUTF();
-//                        System.out.println(signal);
                     if (signal.equals("!publicmessage")) {
                         String sender = this.dataInputStream.readUTF();
                         String content = this.dataInputStream.readUTF();
@@ -84,10 +80,7 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
                         String[] usernames = content.split("\\|");
                         String previousSelection = String.valueOf(onlineUserList.getSelectedItem());
                         onlineUserList.removeAllItems();
-//                        messagePaneMap.clear();
-
                         onlineUserList.addItem("All");
-
                         for (String user : usernames) {
                             if (!user.equals(username)) { // chi lay ra nhung online users khac chinh minh
                                 onlineUserList.addItem(user);
@@ -143,7 +136,6 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
         this.dataInputStream = dataInputStream;
         this.host = host;
         this.port = port;
-//        setUPGUI();
         JPanel mainPanel = new JPanel(new BorderLayout());
         JPanel headerPanel = new JPanel(new GridBagLayout());
         setLayout(new BorderLayout());
@@ -151,8 +143,6 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
         header = new JLabel("Hello " + username, SwingConstants.CENTER);
         header.setFont(header.getFont().deriveFont(20.0f));
         header.setForeground(Color.blue);
-//        nameLabel = new JLabel("Input your name: ");
-//        nameText = new JTextField(10);
         hostLabel = new JLabel("Host address: ");
         hostField = new JTextField(10);
         portLable = new JLabel("Port: ");
@@ -220,8 +210,7 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
         gbc.gridx = 3;
         messageLabel = new JLabel("HISTORY");
         headerPanel.add(messageLabel, gbc);
-//        messageLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-//        chatPanel.add(messageLabel);
+
         msgtextPane = new JTextPane();
         msgtextPane.setPreferredSize(new Dimension(500, 300));
         msgtextPane.setEditable(false);
@@ -236,19 +225,14 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
         JPanel sendFilePanel = new JPanel();
         sendFilePanel.setBorder(new EmptyBorder(new Insets(10, 0, 10, 0)));
         sendFilePanel.setLayout(new BoxLayout(sendFilePanel, BoxLayout.X_AXIS));
-
+        sendFilePanel.setAlignmentX(Component.RIGHT_ALIGNMENT);
         JLabel noticeLabel = new JLabel("Input your message here");
         noticeLabel.setFont(new Font("Arial", Font.ITALIC, 12));
         sendFilePanel.add(noticeLabel);
         sendFilePanel.add(Box.createRigidArea(new Dimension(20, 0)));
         sendFileBtn = new JButton("Send File");
+        sendFileBtn.addActionListener(this);
         sendFilePanel.add(sendFileBtn);
-
-//        endChatBtn = new JButton("End Chat");
-//        endChatBtn.addActionListener(this);
-//        endChatBtn.setBackground(Color.red);
-//        sendFilePanel.add(Box.createRigidArea(new Dimension(210, 0)));
-//        sendFilePanel.add(endChatBtn);
 
         chatPanel.add(sendFilePanel);
 
@@ -265,10 +249,6 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
         sendMsgPanel.add(sendBtn);
         chatPanel.add(sendMsgPanel);
 
-
-//        tabbedPane = new JTabbedPane();
-//        tabbedPane.addTab("Setting", null, panel1, "click to show setting");
-//        tabbedPane.addTab("Chat", null, chatPanel, "click to show chat");
         mainPanel.add(headerPanel, BorderLayout.PAGE_START);
         mainPanel.add(chatPanel, BorderLayout.CENTER);
         container.add(mainPanel);
@@ -277,6 +257,7 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
         this.setVisible(true);
         this.setResizable(false);
         this.setSize(new Dimension(600, 500));
+        this.addWindowListener(this);
         Thread receiveMessageThread = new Thread(new receiveMessage(dataInputStream));
         receiveMessageThread.start();
     }
@@ -380,17 +361,42 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
             System.out.println("change to " + receiver);
             scrollPane.setViewportView(msgtextPane);
             scrollPane.validate();
-//            System.out.println(messagePaneMap.get(receiver));
-            // check if current text pane is chatting with this user or not
-//            if (msgtextPane != messagePaneMap.get(receiver)){
-//                msgtextPane = messagePaneMap.get(receiver); // assign to the right one
-//                System.out.println("change to " + receiver);
-////                inputMsg.setText(""); // clear message
-//                scrollPane.setViewportView(msgtextPane);
-//                scrollPane.validate();
-//            }
         }
     }
+    @Override
+    public void windowOpened(WindowEvent e) {
 
+    }
+
+    @Override
+    public void windowClosing(WindowEvent e) {
+        this.sendLogoutRequest(username);
+//        System.out.println("Window closing");
+    }
+
+    @Override
+    public void windowClosed(WindowEvent e) {
+
+    }
+
+    @Override
+    public void windowIconified(WindowEvent e) {
+
+    }
+
+    @Override
+    public void windowDeiconified(WindowEvent e) {
+
+    }
+
+    @Override
+    public void windowActivated(WindowEvent e) {
+
+    }
+
+    @Override
+    public void windowDeactivated(WindowEvent e) {
+
+    }
 
 }

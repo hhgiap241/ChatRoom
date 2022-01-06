@@ -72,6 +72,7 @@ class ServerService implements Runnable {
                     dataOutputStream.writeUTF("!leave");
                     dataOutputStream.flush();
                     socket.close();
+                    break;
                 }
             } catch (IOException e) {
                 e.printStackTrace();

@@ -172,6 +172,7 @@ public class ServerSide extends JPanel implements ActionListener {
         for (ServerService service : ServerSide.userList) {
             if (service.getUsername().equals(username)){
                 userList.remove(service);
+                textPane.setText(textPane.getText() + "\nUser " + username + " is disconnected!");
                 break;
             }
         }
@@ -221,7 +222,7 @@ public class ServerSide extends JPanel implements ActionListener {
                                 numOfUserText.setText(String.valueOf(numberOfUser));
                                 DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
                                 DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
-                                textPane.setText(textPane.getText() + "\nConnected to client " + socket.getPort());
+                                textPane.setText(textPane.getText() + "\nConnected to " + socket.getPort());
 
                                 String requestFromUser = dataInputStream.readUTF();
 
