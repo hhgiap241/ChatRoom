@@ -62,6 +62,16 @@ class ServerService implements Runnable {
                         service.getDataOutputStream().writeUTF(content);
                         service.getDataOutputStream().flush();
                     }
+                } else if (message.equals("!logout")){
+                    String userToLogout = dataInputStream.readUTF();
+                    System.out.println(userToLogout + " request logout");
+                    ServerSide.removeFromUserList(userToLogout);
+                    ServerSide.updateOnlineUser();
+                    ServerSide.numOfUserText.setText(String.valueOf(ServerSide.userList.size()));
+                    // send message that user can leave
+                    dataOutputStream.writeUTF("!leave");
+                    dataOutputStream.flush();
+                    socket.close();
                 }
             } catch (IOException e) {
                 e.printStackTrace();

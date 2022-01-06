@@ -35,7 +35,7 @@ public class ServerSide extends JPanel implements ActionListener {
     private JLabel statusLabel;
     private JLabel statusText;
     private JLabel numOfUserLabel;
-    private JLabel numOfUserText;
+    static JLabel numOfUserText;
     private int numberOfUser;
     static ArrayList<ServerService> userList; // danh sach cac user online
     private ServerSocket serverSocket;
@@ -168,7 +168,7 @@ public class ServerSide extends JPanel implements ActionListener {
         });
     }
 
-    public void removeFromUserList(String username){
+    public static void removeFromUserList(String username){
         for (ServerService service : ServerSide.userList) {
             if (service.getUsername().equals(username)){
                 userList.remove(service);
@@ -266,15 +266,6 @@ public class ServerSide extends JPanel implements ActionListener {
                                         dataOutputStream.writeUTF("!existsusername");
                                         dataOutputStream.flush();
                                     }
-                                } else if (requestFromUser.equals("!logout")){
-                                    String userToLogout = dataInputStream.readUTF();
-                                    removeFromUserList(userToLogout);
-                                    ServerSide.updateOnlineUser();
-                                    numOfUserText.setText(String.valueOf(userList.size()));
-                                    // send message that user can leave
-                                    dataOutputStream.writeUTF("!leave");
-                                    dataOutputStream.flush();
-                                    socket.close();
                                 }
                             }
                         } catch (IOException ex) {

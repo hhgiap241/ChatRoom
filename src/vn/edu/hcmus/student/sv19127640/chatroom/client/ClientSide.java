@@ -33,7 +33,7 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
     private JButton logoutBtn;
     private JTextPane msgtextPane;
     private JScrollPane scrollPane;
-    private JButton endChatBtn;
+//    private JButton endChatBtn;
     private JLabel messageLabel;
     private JTextArea inputMsg;
     private String username;
@@ -105,13 +105,16 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
                         if (isExistInList(previousSelection)){
                             onlineUserList.setSelectedItem(previousSelection);
                         } else{
+                            JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "This user is currently offline! You will be redirect to Group Chat");
                             onlineUserList.setSelectedItem("All");
                         }
-                    } else if (signal.equals("!leave")){
+                    }else if (signal.equals("!leave")){
                         dataInputStream.close();
                         dataOutputStream.close();
+                        socket.close();
                         dispose();
                         LoginScreen loginScreen = new LoginScreen();
+                        break;
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -241,11 +244,11 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
         sendFileBtn = new JButton("Send File");
         sendFilePanel.add(sendFileBtn);
 
-        endChatBtn = new JButton("End Chat");
-        endChatBtn.addActionListener(this);
-        endChatBtn.setBackground(Color.red);
-        sendFilePanel.add(Box.createRigidArea(new Dimension(210, 0)));
-        sendFilePanel.add(endChatBtn);
+//        endChatBtn = new JButton("End Chat");
+//        endChatBtn.addActionListener(this);
+//        endChatBtn.setBackground(Color.red);
+//        sendFilePanel.add(Box.createRigidArea(new Dimension(210, 0)));
+//        sendFilePanel.add(endChatBtn);
 
         chatPanel.add(sendFilePanel);
 
@@ -320,6 +323,15 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener {
     public void sendLogoutRequest(String username) {
         try {
             dataOutputStream.writeUTF("!logout");
+            dataOutputStream.writeUTF(username);
+            dataOutputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void sendLeaveChatRequest(String username){
+        try {
+            dataOutputStream.writeUTF("!exitchat");
             dataOutputStream.writeUTF(username);
             dataOutputStream.flush();
         } catch (IOException e) {
