@@ -35,7 +35,10 @@ public class LoginScreen extends JFrame implements ActionListener {
     private JTextField hostField;
     private JLabel portLable;
     private JTextField portField;
-//    private Account account;
+
+    public static void main(String[] args) {
+        new LoginScreen();
+    }
 
     public LoginScreen(){
         Container container = this.getContentPane();

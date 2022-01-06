@@ -40,7 +40,6 @@ public class ServerSide extends JPanel implements ActionListener {
     static ArrayList<ServerService> userList; // danh sach cac user online
     private ServerSocket serverSocket;
     Thread thread;
-    private Object lock;
 
 
 
@@ -63,7 +62,6 @@ public class ServerSide extends JPanel implements ActionListener {
 
     private void setUPGUI() {
         this.userList = new ArrayList<>();
-        this.lock = new Object();
         numberOfUser = 0;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         header = new JLabel("SERVER MANAGEMENT");
