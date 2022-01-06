@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Vector;
 
 /**
@@ -27,9 +28,10 @@ class ClientService implements ActionListener {
     private JButton endChatBtn;
     private JTabbedPane tabbedPane;
     private JList userList;
+    private ArrayList<String> chattingList;
 
 
-    public ClientService(String username, Socket socket, JTextPane msgtextPane, JButton sendFileBtn, JButton sendBtn, JTextArea inputMsg, JLabel messageLabel, JButton endChatBtn, JTabbedPane tabbedPane, JList userList) throws IOException {
+    public ClientService(String username, Socket socket, JTextPane msgtextPane, JButton sendFileBtn, JButton sendBtn, JTextArea inputMsg, JLabel messageLabel, JButton endChatBtn, JTabbedPane tabbedPane, JList userList, ArrayList<String> chattingList) throws IOException {
         this.socket = socket;
         this.tabbedPane = tabbedPane;
         this.username = username;
@@ -37,12 +39,13 @@ class ClientService implements ActionListener {
         this.sendBtn = sendBtn;
         sendBtn.addActionListener(this);
         this.sendFileBtn = sendFileBtn;
-        sendBtn.addActionListener(this);
+        sendFileBtn.addActionListener(this);
         this.endChatBtn = endChatBtn;
         endChatBtn.addActionListener(this);
         this.inputMsg = inputMsg;
         this.messageLabel = messageLabel;
         this.userList = userList;
+        this.chattingList = chattingList;
         this.dataInputStream = new DataInputStream(socket.getInputStream());
         this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
         receive();
@@ -54,11 +57,13 @@ class ClientService implements ActionListener {
                 while (true) {
                     try {
                         String signal = dataInputStream.readUTF();
-                        System.out.println(signal);
+//                        System.out.println(signal);
                         if (signal.equals("!text")) {
                             String sender = dataInputStream.readUTF();
                             String content = dataInputStream.readUTF();
-                            textPane.setText(textPane.getText() + "\n" + sender + ": " + content);
+//                            String receiver = tabbedPane.getTitleAt(tabbedPane.getSelectedIndex());
+//                            textPane.setText(textPane.getText() + "\n" + sender + ": " + content);
+                            System.out.println(username + " receive " + content + " from " + sender);
                         } else if (signal.equals("!updateonlineuser")) {
                             String[] content = dataInputStream.readUTF().split("\\|");
                             Vector<String> onlineUsers = new Vector<>();
@@ -82,14 +87,14 @@ class ClientService implements ActionListener {
         thread.start();
     }
 
-    public void send(String message, String receiver) {
-        String current = textPane.getText();
-        textPane.setText(current + "\nYou: " + message);
+    public void sendMessage(String message, String receiver) {
         try {
             dataOutputStream.writeUTF("!text");
             dataOutputStream.writeUTF(receiver);
             dataOutputStream.writeUTF(message);
             dataOutputStream.flush();
+            String current = textPane.getText();
+            textPane.setText(current + "\nYou: " + message);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -139,8 +144,10 @@ class ClientService implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == sendBtn) {
-            textPane.setText(inputMsg.getText());
-            System.out.println("Send button clicked");
+            String message = inputMsg.getText();
+            String receiver = tabbedPane.getTitleAt(tabbedPane.getSelectedIndex());
+            this.sendMessage(message, receiver);
+            System.out.println(username + " Sent " + message + " to " + receiver);
         } else if (e.getSource() == sendFileBtn) {
             System.out.println("Send file clicked");
         } else if (e.getSource() == endChatBtn) {
@@ -148,4 +155,35 @@ class ClientService implements ActionListener {
             tabbedPane.remove(tabbedPane.getSelectedIndex());
         }
     }
+
+//    @Override
+//    public void run() {
+//        while (true) {
+//            try {
+//                String signal = dataInputStream.readUTF();
+////                        System.out.println(signal);
+//                if (signal.equals("!text")) {
+//                    String sender = dataInputStream.readUTF();
+//                    String content = dataInputStream.readUTF();
+//                    textPane.setText(textPane.getText() + "\n" + sender + ": " + content);
+//                    System.out.println(username + " receive " + content + " from " + sender);
+//                } else if (signal.equals("!updateonlineuser")) {
+//                    String[] content = dataInputStream.readUTF().split("\\|");
+//                    Vector<String> onlineUsers = new Vector<>();
+//                    for (int i = 0; i < content.length; i++){
+//                        if (!content[i].equals(username))
+//                            onlineUsers.add(content[i]);
+//                    }
+//                    userList.removeAll(); // remove all from list
+//                    userList.setListData(onlineUsers);
+//                }
+//            } catch (Exception e) {
+//                try {
+//                    close();
+//                } catch (IOException ex) {
+//                    ex.printStackTrace();
+//                }
+//            }
+//        }
+//    }
 }

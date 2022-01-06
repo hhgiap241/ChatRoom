@@ -13,7 +13,7 @@ import java.util.ArrayList;
  * Date 1/2/2022 - 10:32 AM
  * Description: provide server for every login user
  */
-class ServerService implements Runnable{
+class ServerService implements Runnable {
     private Socket socket;
     private DataOutputStream dataOutputStream;
     private DataInputStream dataInputStream;
@@ -22,6 +22,7 @@ class ServerService implements Runnable{
 
     public ServerService(String username, String password, Socket socket) throws IOException {
         this.socket = socket;
+
         this.username = username;
         this.password = password;
         this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
@@ -31,23 +32,35 @@ class ServerService implements Runnable{
 
     @Override
     public void run() {
-        while(true){
+        while (true) {
             String message = null;
             try {
                 message = dataInputStream.readUTF();
-                if (message.equals("!text")){ // gui tin nhan dang text
+                if (message.equals("!privatemessage")) { // gui tin nhan dang text
                     String destinationUser = dataInputStream.readUTF(); // doc ten nguoi nhan
                     String content = dataInputStream.readUTF(); // doc noi dung tin nhan
                     // tim nguoi nhan trong danh sach online user
-                    for (ServerService service: ServerSide.userList){
-                        if (service.getUsername().equals(destinationUser)){
+                    System.out.println(username + " send " + content + " to " + destinationUser);
+                    for (ServerService service : ServerSide.userList) {
+                        if (service.getUsername().equals(destinationUser)) {
                             // send back
-                            service.getDataOutputStream().writeUTF("!text");
+                            service.getDataOutputStream().writeUTF("!privatemessage");
                             service.getDataOutputStream().writeUTF(this.username);
                             service.getDataOutputStream().writeUTF(content);
                             service.getDataOutputStream().flush();
                             break;
                         }
+                    }
+                } else if (message.equals("!publicmessage")) {
+                    String content = dataInputStream.readUTF(); // doc noi dung tin nhan
+                    // tim nguoi nhan trong danh sach online user
+                    System.out.println(username + " send " + content + " to all");
+                    for (ServerService service : ServerSide.userList) {
+                        // send back
+                        service.getDataOutputStream().writeUTF("!publicmessage");
+                        service.getDataOutputStream().writeUTF(this.username);
+                        service.getDataOutputStream().writeUTF(content);
+                        service.getDataOutputStream().flush();
                     }
                 }
             } catch (IOException e) {
@@ -79,6 +92,7 @@ class ServerService implements Runnable{
 
     /**
      * close connection
+     *
      * @throws IOException exception
      */
     public void close() throws IOException {

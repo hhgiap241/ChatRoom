@@ -40,6 +40,7 @@ public class ServerSide extends JPanel implements ActionListener {
     static ArrayList<ServerService> userList; // danh sach cac user online
     private ServerSocket serverSocket;
     Thread thread;
+    private Object lock;
 
 
 
@@ -62,7 +63,7 @@ public class ServerSide extends JPanel implements ActionListener {
 
     private void setUPGUI() {
         this.userList = new ArrayList<>();
-
+        this.lock = new Object();
         numberOfUser = 0;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         header = new JLabel("SERVER MANAGEMENT");
@@ -167,6 +168,14 @@ public class ServerSide extends JPanel implements ActionListener {
         });
     }
 
+    public void removeFromUserList(String username){
+        for (ServerService service : ServerSide.userList) {
+            if (service.getUsername().equals(username)){
+                userList.remove(service);
+                break;
+            }
+        }
+    }
     /**
      * update online users to another users
      */
@@ -257,6 +266,15 @@ public class ServerSide extends JPanel implements ActionListener {
                                         dataOutputStream.writeUTF("!existsusername");
                                         dataOutputStream.flush();
                                     }
+                                } else if (requestFromUser.equals("!logout")){
+                                    String userToLogout = dataInputStream.readUTF();
+                                    removeFromUserList(userToLogout);
+                                    ServerSide.updateOnlineUser();
+                                    numOfUserText.setText(String.valueOf(userList.size()));
+                                    // send message that user can leave
+                                    dataOutputStream.writeUTF("!leave");
+                                    dataOutputStream.flush();
+                                    socket.close();
                                 }
                             }
                         } catch (IOException ex) {
@@ -264,7 +282,7 @@ public class ServerSide extends JPanel implements ActionListener {
                     }
                 };
                 thread.start();
-                System.out.println("Start" + thread);
+                System.out.println("Start " + thread);
             } catch (IOException ioException) {
                 JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Error: " + ioException.getMessage());
                 ioException.printStackTrace();

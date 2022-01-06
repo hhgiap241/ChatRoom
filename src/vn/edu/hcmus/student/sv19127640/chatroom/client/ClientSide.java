@@ -5,20 +5,15 @@ import vn.edu.hcmus.student.sv19127640.chatroom.auth.LoginScreen;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.EtchedBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+import java.awt.event.*;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom.client
@@ -28,7 +23,7 @@ import java.util.Vector;
  */
 
 
-public class ClientSide extends JFrame implements ActionListener {
+public class ClientSide extends JFrame implements ActionListener, ItemListener {
     private JLabel header;
     private JLabel hostLabel;
     private JTextField hostField;
@@ -37,29 +32,108 @@ public class ClientSide extends JFrame implements ActionListener {
     private JButton connectBtn;
     private JButton logoutBtn;
     private JTextPane msgtextPane;
-    private JList userList;
-    private JButton startChatBtn;
+    private JScrollPane scrollPane;
     private JButton endChatBtn;
     private JLabel messageLabel;
     private JTextArea inputMsg;
     private String username;
-    //    private JLabel nameLabel;
-//    private JTextField nameText;
     private JButton sendBtn;
     private JButton sendFileBtn;
-    private JButton refreshListBtn;
-    private JLabel userToChatLabel;
-    private JTabbedPane tabbedPane;
     private Socket socket;
     private String host;
     private String port;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
+    private ArrayList<String> chattingList;
+    private JLabel onlineUserLabel;
+    private JComboBox<String> onlineUserList;
 
-    private ClientService clientService;
+    private HashMap<String, JTextPane> messagePaneMap;
+
+
+    class receiveMessage implements Runnable {
+        private DataInputStream dataInputStream;
+
+        public receiveMessage(DataInputStream dataInputStream) {
+            this.dataInputStream = dataInputStream;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    String signal = this.dataInputStream.readUTF();
+//                        System.out.println(signal);
+                    if (signal.equals("!publicmessage")) {
+                        String sender = this.dataInputStream.readUTF();
+                        String content = this.dataInputStream.readUTF();
+                        msgtextPane = messagePaneMap.get("All");
+                        if (!sender.equals(username)) {
+                            msgtextPane.setText(msgtextPane.getText() + "\n" + sender + ": " + content);
+                            System.out.println(username + " receive " + content + " from " + sender);
+                        }
+                    } else if (signal.equals("!privatemessage")) {
+                        String sender = this.dataInputStream.readUTF();
+                        String content = this.dataInputStream.readUTF();
+                        msgtextPane = messagePaneMap.get(sender);
+                        msgtextPane.setText(msgtextPane.getText() + "\n" + sender + ": " + content);
+                        System.out.println(username + " receive " + content + " from " + sender);
+                    } else if (signal.equals("!updateonlineuser")) {
+                        String content = this.dataInputStream.readUTF();
+                        System.out.println(content);
+                        String[] usernames = content.split("\\|");
+                        String previousSelection = String.valueOf(onlineUserList.getSelectedItem());
+                        onlineUserList.removeAllItems();
+//                        messagePaneMap.clear();
+
+                        onlineUserList.addItem("All");
+
+                        for (String user : usernames) {
+                            if (!user.equals(username)) { // chi lay ra nhung online users khac chinh minh
+                                onlineUserList.addItem(user);
+                                System.out.println("added " + user);
+                                if (messagePaneMap.get(user) == null) {
+                                    // create new text pane
+                                    JTextPane textPane = new JTextPane();
+                                    textPane.setPreferredSize(new Dimension(500, 300));
+                                    textPane.setEditable(false); // prevent editting
+                                    messagePaneMap.put(user, textPane);
+                                }
+                            }
+                        }
+                        // set to the previous option
+                        if (isExistInList(previousSelection)){
+                            onlineUserList.setSelectedItem(previousSelection);
+                        } else{
+                            onlineUserList.setSelectedItem("All");
+                        }
+                    } else if (signal.equals("!leave")){
+                        dataInputStream.close();
+                        dataOutputStream.close();
+                        dispose();
+                        LoginScreen loginScreen = new LoginScreen();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    try {
+                        this.dataInputStream.close();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
 
     public ClientSide(String username, Socket socket, DataInputStream dataInputStream, DataOutputStream dataOutputStream, String host, String port) {
         Container container = this.getContentPane();
+        chattingList = new ArrayList<>();
+        messagePaneMap = new HashMap<>();
+        onlineUserList = new JComboBox<>();
+        onlineUserList.addItem("All");
+        onlineUserList.addItemListener(this);
+
+
         this.username = username;
         this.socket = socket;
         this.dataOutputStream = dataOutputStream;
@@ -131,107 +205,30 @@ public class ClientSide extends JFrame implements ActionListener {
         gbc.gridx = 5;
         logoutBtn.addActionListener(this);
         headerPanel.add(logoutBtn, gbc);
-
-        JPanel panel1 = new JPanel(new BorderLayout());
-        panel1.add(new JLabel("Online users (click to chat): "), BorderLayout.PAGE_START);
-        userList = new JList();
-        userList.setSelectionMode(DefaultListSelectionModel.SINGLE_INTERVAL_SELECTION);
-        JScrollPane scrollPaneInfo = new JScrollPane(userList);
-        startChatBtn = new JButton("Start Chat");
-        startChatBtn.addActionListener(this);
-        refreshListBtn = new JButton("Refresh Online Users List");
-        refreshListBtn.addActionListener(this);
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.PAGE_AXIS));
-        JPanel footerContent = new JPanel();
-        footerContent.setLayout(new BoxLayout(footerContent, BoxLayout.X_AXIS));
-        footerContent.add(startChatBtn);
-        footerContent.add(Box.createRigidArea(new Dimension(20,0)));
-        footerContent.add(refreshListBtn);
-        buttonPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        buttonPanel.add(footerContent);
-
-//        startChatBtn.setEnabled(false);
-        panel1.add(scrollPaneInfo, BorderLayout.CENTER);
-        panel1.add(buttonPanel, BorderLayout.PAGE_END);
-
-
-        tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Setting", null, panel1, "click to show setting");
-//        tabbedPane.addTab("Chat", null, chatPanel, "click to show chat");
-        mainPanel.add(headerPanel, BorderLayout.PAGE_START);
-        mainPanel.add(tabbedPane, BorderLayout.CENTER);
-        container.add(mainPanel);
-        this.setTitle("Chat Box");
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setVisible(true);
-        this.setResizable(false);
-        this.setSize(new Dimension(600, 500));
-        // update online users list for new user
-        try {
-            if (dataInputStream.readUTF().equals("!updateonlineuser")) {
-                String[] content = dataInputStream.readUTF().split("\\|");
-                Vector<String> onlineUsers = new Vector<>();
-                for (int i = 0; i < content.length; i++) {
-                    if (!content[i].equals(username))
-                        onlineUsers.add(content[i]);
-                }
-                userList.setListData(onlineUsers);
-            }
-        } catch (IOException exception) {
-            exception.printStackTrace();
-        }
-    }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        if (e.getSource() == startChatBtn) {
-            if (userList.getSelectedIndex() == -1){
-                JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Error: Please choose one user to chat!");
-                return;
-            }
-            String selectedUser = (String) userList.getSelectedValue();
-            tabbedPane.addTab(selectedUser, null, createNewTab());
-            try {
-                clientService = new ClientService(username, socket, msgtextPane, sendFileBtn, sendBtn, inputMsg, messageLabel, endChatBtn, tabbedPane, userList);
-//                msgtextPane.setText(msgtextPane.getText() + "\nConnected to server");
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        } else if (e.getSource() == logoutBtn) {
-            JComponent comp = (JComponent) e.getSource();
-            Window win = SwingUtilities.getWindowAncestor(comp);
-            win.dispose();
-            LoginScreen loginScreen = new LoginScreen();
-        } else if (e.getSource() == refreshListBtn){
-            try {
-                if (dataInputStream.readUTF().equals("!updateonlineuser")){
-                    String[] content = dataInputStream.readUTF().split("\\|");
-                    Vector<String> onlineUsers = new Vector<>();
-                    for (int i = 0; i < content.length; i++){
-                        if (!content[i].equals(username))
-                            onlineUsers.add(content[i]);
-                    }
-                    userList.setListData(onlineUsers);
-                }
-            } catch (IOException exception) {
-                exception.printStackTrace();
-            }
-        }
-    }
-
-    public JPanel createNewTab() {
         JPanel chatPanel = new JPanel();
         chatPanel.setBorder(new EmptyBorder(new Insets(10, 20, 10, 20)));
         chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.PAGE_AXIS));
-        messageLabel = new JLabel("Message: ");
-
-        messageLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        chatPanel.add(messageLabel);
+        gbc.gridy = 2;
+        gbc.gridx = 0;
+        onlineUserLabel = new JLabel("Choose user: ");
+        headerPanel.add(onlineUserLabel, gbc);
+        gbc.gridx = 1;
+        headerPanel.add(onlineUserList, gbc);
+        gbc.gridx = 3;
+        messageLabel = new JLabel("HISTORY");
+        headerPanel.add(messageLabel, gbc);
+//        messageLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+//        chatPanel.add(messageLabel);
         msgtextPane = new JTextPane();
         msgtextPane.setPreferredSize(new Dimension(500, 300));
-        JScrollPane scrollPaneMsg = new JScrollPane(msgtextPane, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        chatPanel.add(scrollPaneMsg);
+        msgtextPane.setEditable(false);
+        scrollPane = new JScrollPane();
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setViewportView(msgtextPane);
+        scrollPane.validate();
+        messagePaneMap.put("All", msgtextPane); // chat gr
+        chatPanel.add(scrollPane);
 
         JPanel sendFilePanel = new JPanel();
         sendFilePanel.setBorder(new EmptyBorder(new Insets(10, 0, 10, 0)));
@@ -261,11 +258,127 @@ public class ClientSide extends JFrame implements ActionListener {
         sendMsgPanel.add(inputMsg);
         sendMsgPanel.add(Box.createRigidArea(new Dimension(20, 0)));
         sendBtn = new JButton("Send");
+        sendBtn.addActionListener(this);
         sendMsgPanel.add(sendBtn);
-
-
         chatPanel.add(sendMsgPanel);
-        return chatPanel;
+
+
+//        tabbedPane = new JTabbedPane();
+//        tabbedPane.addTab("Setting", null, panel1, "click to show setting");
+//        tabbedPane.addTab("Chat", null, chatPanel, "click to show chat");
+        mainPanel.add(headerPanel, BorderLayout.PAGE_START);
+        mainPanel.add(chatPanel, BorderLayout.CENTER);
+        container.add(mainPanel);
+        this.setTitle("Chat Box");
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setVisible(true);
+        this.setResizable(false);
+        this.setSize(new Dimension(600, 500));
+        Thread receiveMessageThread = new Thread(new receiveMessage(dataInputStream));
+        receiveMessageThread.start();
     }
+
+    /**
+     * check if current user is chatting with specific user or not
+     *
+     * @param username String
+     * @return boolean
+     */
+    public boolean isChattingWith(String username) {
+        for (int i = 0; i < chattingList.size(); i++) {
+            if (chattingList.get(i).equals(username))
+                return true;
+        }
+        return false;
+    }
+
+    public void sendPrivate(String message, String receiver) {
+        try {
+            dataOutputStream.writeUTF("!privatemessage");
+            dataOutputStream.writeUTF(receiver);
+            dataOutputStream.writeUTF(message);
+            dataOutputStream.flush();
+            String current = msgtextPane.getText();
+            msgtextPane.setText(current + "\nYou: " + message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendPublic(String message) {
+        try {
+            dataOutputStream.writeUTF("!publicmessage");
+//            dataOutputStream.writeUTF(receiver);
+            dataOutputStream.writeUTF(message);
+            dataOutputStream.flush();
+            String current = msgtextPane.getText();
+            msgtextPane.setText(current + "\nYou: " + message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void sendLogoutRequest(String username) {
+        try {
+            dataOutputStream.writeUTF("!logout");
+            dataOutputStream.writeUTF(username);
+            dataOutputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public boolean isExistInList(String username) {
+        for (int i = 0; i < onlineUserList.getItemCount(); i++) {
+            if (onlineUserList.getItemAt(i).equals(username))
+                return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == sendBtn) {
+            String message = inputMsg.getText();
+            if (message.length() == 0) {
+                JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "Invalid message!");
+                return;
+            }
+            String receiver = String.valueOf(onlineUserList.getSelectedItem());
+            if (receiver.equals("All")) {
+                this.sendPublic(message);
+            } else {
+                this.sendPrivate(message, receiver);
+            }
+
+            this.inputMsg.setText(""); // clear message after send
+            System.out.println(username + " Sent " + message + " to " + receiver);
+        } else if (e.getSource() == logoutBtn){
+            this.sendLogoutRequest(username);
+        }
+    }
+
+    @Override
+    public void itemStateChanged(ItemEvent e) {
+        if (e.getStateChange() == ItemEvent.SELECTED) {
+            String receiver = String.valueOf(onlineUserList.getSelectedItem());
+            System.out.println("clicked");
+            System.out.println(receiver);
+            msgtextPane = messagePaneMap.get(receiver); // assign to the right one
+            System.out.println("change to " + receiver);
+            scrollPane.setViewportView(msgtextPane);
+            scrollPane.validate();
+//            System.out.println(messagePaneMap.get(receiver));
+            // check if current text pane is chatting with this user or not
+//            if (msgtextPane != messagePaneMap.get(receiver)){
+//                msgtextPane = messagePaneMap.get(receiver); // assign to the right one
+//                System.out.println("change to " + receiver);
+////                inputMsg.setText(""); // clear message
+//                scrollPane.setViewportView(msgtextPane);
+//                scrollPane.validate();
+//            }
+        }
+    }
+
 
 }
