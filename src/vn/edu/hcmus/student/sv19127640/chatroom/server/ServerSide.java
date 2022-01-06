@@ -191,7 +191,7 @@ public class ServerSide extends JPanel implements ActionListener {
                 service.getDataOutputStream().writeUTF("!updateonlineuser");
                 service.getDataOutputStream().writeUTF(message);
                 service.getDataOutputStream().flush();
-                textPane.setText(textPane.getText() + "\n" + message);
+//                textPane.setText(textPane.getText() + "\n" + message);
             } catch (IOException e) {
                 e.printStackTrace();
             }

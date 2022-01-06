@@ -62,7 +62,7 @@ class ServerService implements Runnable {
                         service.getDataOutputStream().writeUTF(content);
                         service.getDataOutputStream().flush();
                     }
-                } else if (message.equals("!privatefile")){
+                } else if (message.equals("!privatefile")) {
                     int fileNameLength = 0;
                     try {
                         String receiver = dataInputStream.readUTF();
@@ -102,7 +102,43 @@ class ServerService implements Runnable {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                } else if (message.equals("!logout")){
+                } else if (message.equals("!publicfile")) {
+                    int fileNameLength = 0;
+                    try {
+                        fileNameLength = dataInputStream.readInt();
+                        // If the file exists
+                        if (fileNameLength > 0) {
+                            // Byte array to hold name of file.
+                            byte[] fileNameBytes = new byte[fileNameLength];
+                            // Read from the input stream into the byte array.
+                            dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length);
+                            // Create the file name from the byte array.
+                            String fileName = new String(fileNameBytes);
+                            // Read how much data to expect for the actual content of the file.
+                            int fileContentLength = dataInputStream.readInt();
+                            // If the file exists.
+                            if (fileContentLength > 0) {
+                                // Array to hold the file data.
+                                byte[] fileContentBytes = new byte[fileContentLength];
+                                // Read from the input stream into the fileContentBytes array.
+                                dataInputStream.readFully(fileContentBytes, 0, fileContentBytes.length);
+                                System.out.println(username + " send " + fileName + " to all");
+                                for (ServerService service : ServerSide.userList) {
+                                    // send back
+                                    service.getDataOutputStream().writeUTF("!publicfile");
+                                    service.getDataOutputStream().writeUTF(this.username);
+                                    service.getDataOutputStream().writeInt(fileNameBytes.length);
+                                    service.getDataOutputStream().write(fileNameBytes);
+                                    service.getDataOutputStream().writeInt(fileContentLength);
+                                    service.getDataOutputStream().write(fileContentBytes);
+                                    service.getDataOutputStream().flush();
+                                }
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else if (message.equals("!logout")) {
                     String userToLogout = dataInputStream.readUTF();
                     System.out.println(userToLogout + " request logout");
                     ServerSide.removeFromUserList(userToLogout);
