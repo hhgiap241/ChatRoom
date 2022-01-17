@@ -1,10 +1,7 @@
 package vn.edu.hcmus.student.sv19127640.chatroom.server;
 
-
 import vn.edu.hcmus.student.sv19127640.chatroom.auth.Account;
-
 import javax.swing.*;
-import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -14,16 +11,22 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom.server
  * Created by ADMIN
  * Date 1/2/2022 - 10:32 AM
- * Description: ...
+ * Description: Server main class
  */
 
 public class ServerSide extends JPanel implements ActionListener {
+    /**
+     * attributes
+     */
     private JLabel header;
     private JLabel hostLabel;
     private JTextField hostField;
@@ -36,20 +39,21 @@ public class ServerSide extends JPanel implements ActionListener {
     private JLabel statusText;
     private JLabel numOfUserLabel;
     static JLabel numOfUserText;
-    private int numberOfUser;
     static ArrayList<ServerService> userList; // danh sach cac user online
     private ServerSocket serverSocket;
     Thread thread;
 
-
-
+    /**
+     * default constructor
+     */
     public ServerSide() {
         setUPGUI();
     }
 
+    /**
+     * function to show GUI of server side
+     */
     private static void showGUI() {
-
-//        JFrame.setDefaultLookAndFeelDecorated(true);
         JFrame frame = new JFrame("Chat Box");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         ServerSide serverSide = new ServerSide();
@@ -60,9 +64,11 @@ public class ServerSide extends JPanel implements ActionListener {
         frame.setVisible(true);
     }
 
+    /**
+     * setup GUI for server side
+     */
     private void setUPGUI() {
         this.userList = new ArrayList<>();
-        numberOfUser = 0;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         header = new JLabel("SERVER MANAGEMENT");
         header.setFont(new Font("Arial", Font.BOLD, 25));
@@ -97,7 +103,7 @@ public class ServerSide extends JPanel implements ActionListener {
         statusText.setForeground(Color.red);
         numOfUserLabel = new JLabel("Number of Users: ");
         numOfUserLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        numOfUserText = new JLabel(String.valueOf(numberOfUser));
+        numOfUserText = new JLabel("0");
         numOfUserText.setFont(new Font("Arial", Font.BOLD, 20));
         GridBagConstraints gbc_1 = new GridBagConstraints();
         gbc_1.insets = new Insets(5, 5, 5, 5);
@@ -112,7 +118,6 @@ public class ServerSide extends JPanel implements ActionListener {
         infoPanel.add(numOfUserLabel, gbc_1);
         gbc_1.gridx = 1;
         infoPanel.add(numOfUserText, gbc_1);
-//        infoPanel.setBackground(Color.darkGray);
         infoPanel.setBorder(new TitledBorder("Server Info"));
 
         JPanel headerPanel = new JPanel();
@@ -157,6 +162,10 @@ public class ServerSide extends JPanel implements ActionListener {
         add(footerPanel);
     }
 
+    /**
+     * main function
+     * @param args String array
+     */
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
             @Override
@@ -166,6 +175,10 @@ public class ServerSide extends JPanel implements ActionListener {
         });
     }
 
+    /**
+     * remove the user from online list
+     * @param username String
+     */
     public static void removeFromUserList(String username){
         for (ServerService service : ServerSide.userList) {
             if (service.getUsername().equals(username)){
@@ -184,14 +197,12 @@ public class ServerSide extends JPanel implements ActionListener {
         for (ServerService service : ServerSide.userList) {
             message += service.getUsername() + "|";
         }
-
         // send this message to every online users
         for (ServerService service: ServerSide.userList){
             try {
                 service.getDataOutputStream().writeUTF("!updateonlineuser");
                 service.getDataOutputStream().writeUTF(message);
                 service.getDataOutputStream().flush();
-//                textPane.setText(textPane.getText() + "\n" + message);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -199,6 +210,10 @@ public class ServerSide extends JPanel implements ActionListener {
         }
     }
 
+    /**
+     * button handling
+     * @param e ActionEvent
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == startBtn) {
@@ -217,7 +232,6 @@ public class ServerSide extends JPanel implements ActionListener {
                             statusText.setForeground(Color.GREEN);
                             while (true) {
                                 Socket socket = serverSocket.accept();
-                                numOfUserText.setText(String.valueOf(numberOfUser));
                                 DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
                                 DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
                                 textPane.setText(textPane.getText() + "\nConnected to " + socket.getPort());
@@ -251,7 +265,13 @@ public class ServerSide extends JPanel implements ActionListener {
                                     if(!account.isExistUsername()){ // kiem tra username da ton tai hay chua
                                         // kiem tra 2 password co trung nhau k
                                         if (password1.equals(password2)){
-                                            // dang ky thanh cong
+                                            // dang ky thanh cong va tao ra 1 folder cua user do
+                                            String directoryName = "Download\\" + username;
+                                            Path path = Paths.get(directoryName);
+                                            if (!Files.exists(path)) {
+                                                Files.createDirectory(path);
+                                            }
+                                            // save vao file account.txt
                                             account.saveToFile();
                                             dataOutputStream.writeUTF("!successsignup");
                                             dataOutputStream.flush();

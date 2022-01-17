@@ -1,8 +1,5 @@
 package vn.edu.hcmus.student.sv19127640.chatroom.auth;
 
-import vn.edu.hcmus.student.sv19127640.chatroom.auth.Account;
-import vn.edu.hcmus.student.sv19127640.chatroom.auth.LoginScreen;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -15,9 +12,12 @@ import java.net.Socket;
  * vn.edu.hcmus.student.sv19127640.chatroom
  * Created by ADMIN
  * Date 12/21/2021 - 4:33 AM
- * Description: ...
+ * Description: register screen
  */
 public class RegisterScreen extends JFrame implements ActionListener {
+    /**
+     * attributes
+     */
     private JPanel registerPanel;
     private JLabel header;
     private JLabel usernameLabel;
@@ -38,6 +38,9 @@ public class RegisterScreen extends JFrame implements ActionListener {
     private JLabel portLable;
     private JTextField portField;
 
+    /**
+     * default constructor
+     */
     public RegisterScreen(){
         Container container = this.getContentPane();
         registerPanel = new JPanel(new GridBagLayout());
@@ -112,7 +115,6 @@ public class RegisterScreen extends JFrame implements ActionListener {
         gbc.gridy = 5;
         registerPanel.add(confirmPasswordText, gbc);
 
-
         gbc.gridy = 0;
         gbc.gridx = 0;
         gbc.gridwidth = 3;
@@ -121,7 +123,6 @@ public class RegisterScreen extends JFrame implements ActionListener {
         gbc.gridy = 8;
         registerPanel.add(loginBtn, gbc);
 
-
         container.add(registerPanel);
         this.setTitle("Register");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -129,7 +130,10 @@ public class RegisterScreen extends JFrame implements ActionListener {
         this.setSize(500, 350);
     }
 
-
+    /**
+     * button press handling
+     * @param e ActionEvent
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == loginBtn){
@@ -153,7 +157,7 @@ public class RegisterScreen extends JFrame implements ActionListener {
                     this.dataOutputStream.writeUTF(password1);
                     this.dataOutputStream.writeUTF(password2);
                     this.dataOutputStream.flush();
-                    String resultFromServer = this.dataInputStream.readUTF(); // read respons from server
+                    String resultFromServer = this.dataInputStream.readUTF(); // read responds from server
                     if (resultFromServer.equals("!successsignup")){
                         this.dataInputStream.close();
                         this.dataOutputStream.close();

@@ -15,9 +15,12 @@ import java.net.Socket;
  * vn.edu.hcmus.student.sv19127640.chatroom
  * Created by ADMIN
  * Date 12/21/2021 - 3:35 AM
- * Description: ...
+ * Description: login screen
  */
 public class LoginScreen extends JFrame implements ActionListener {
+    /**
+     * attributes
+     */
     private JPanel loginPanel;
     private JLabel header;
     private JLabel usernameLabel;
@@ -36,13 +39,19 @@ public class LoginScreen extends JFrame implements ActionListener {
     private JLabel portLable;
     private JTextField portField;
 
+    /**
+     * main function
+     * @param args String array
+     */
     public static void main(String[] args) {
         new LoginScreen();
     }
 
+    /**
+     * default constructor
+     */
     public LoginScreen(){
         Container container = this.getContentPane();
-//        account = new Account();
         loginPanel = new JPanel(new GridBagLayout());
         usernameLabel = new JLabel("Username: ");
         usernameText = new JTextField(10);
@@ -120,6 +129,10 @@ public class LoginScreen extends JFrame implements ActionListener {
         this.setSize(400, 300);
     }
 
+    /**
+     * button press handling
+     * @param e ActionEvent
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == registerBtn){
@@ -142,7 +155,6 @@ public class LoginScreen extends JFrame implements ActionListener {
                     EventQueue.invokeLater(new Runnable() {
                         @Override
                         public void run() {
-//                            ClientSide clientSide = new ClientSide();
                             new ClientSide(username, socket, dataInputStream, dataOutputStream, hostField.getText(), portField.getText());
                         }
                     });

@@ -1,28 +1,27 @@
 package vn.edu.hcmus.student.sv19127640.chatroom.client;
-
-
 import vn.edu.hcmus.student.sv19127640.chatroom.auth.LoginScreen;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
-import javax.swing.event.HyperlinkEvent;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom.client
  * Created by ADMIN
  * Date 1/2/2022 - 10:30 AM
- * Description: ...
+ * Description: Client handling
  */
 
 
 public class ClientSide extends JFrame implements ActionListener, ItemListener, WindowListener {
+    /**
+     * attributes
+     */
     private JLabel header;
     private JLabel hostLabel;
     private JTextField hostField;
@@ -42,18 +41,30 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
     private String port;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
-    private ArrayList<String> chattingList;
     private JLabel onlineUserLabel;
     private JComboBox<String> onlineUserList;
     private HashMap<String, JTextPane> messagePaneMap;
 
+    /**
+     * class to receive any message sent to this user
+     */
     class receiveMessage implements Runnable {
+        /**
+         * attributes
+         */
         private DataInputStream dataInputStream;
 
+        /**
+         * constructor with parameter
+         * @param dataInputStream DataInputStream
+         */
         public receiveMessage(DataInputStream dataInputStream) {
             this.dataInputStream = dataInputStream;
         }
 
+        /**
+         * thread
+         */
         @Override
         public void run() {
             while (true) {
@@ -105,34 +116,23 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
                         try {
                             String sender = dataInputStream.readUTF();
                             fileNameLength = dataInputStream.readInt();
-//                            System.out.println("file length = " + fileNameLength);
                             // If the file exists
                             if (fileNameLength > 0) {
-                                // Byte array to hold name of file.
                                 byte[] fileNameBytes = new byte[fileNameLength];
-                                // Read from the input stream into the byte array.
                                 dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length);
-                                // Create the file name from the byte array.
                                 String fileName = new String(fileNameBytes);
-                                // Read how much data to expect for the actual content of the file.
                                 int fileContentLength = dataInputStream.readInt();
-                                // If the file exists.
                                 if (fileContentLength > 0) {
-                                    // Array to hold the file data.
                                     byte[] fileContentBytes = new byte[fileContentLength];
-                                    // Read from the input stream into the fileContentBytes array.
                                     dataInputStream.readFully(fileContentBytes, 0, fileContentBytes.length);
                                     // save file to folder
-//                                    System.out.println("file name = "  + fileName);
                                     System.out.println(username + " receive file " + fileName + " from " + sender);
-                                    File fileToDownload = new File(fileName);
+                                    File fileToDownload = new File("Download\\" + username + "\\" + fileName);
                                     FileOutputStream fileOutputStream = new FileOutputStream(fileToDownload);
-                                    // Write the actual file data to the file.
                                     fileOutputStream.write(fileContentBytes);
-                                    // Close the stream.
                                     fileOutputStream.close();
                                     msgtextPane = messagePaneMap.get(sender);
-                                    msgtextPane.setText(msgtextPane.getText() + "\n" + sender + ": " + fileName + " (click to download)");
+                                    msgtextPane.setText(msgtextPane.getText() + "\n" + sender + ": " + fileName + " (check your file in Download folder)");
                                 }
                             }
                         } catch (IOException e) {
@@ -143,35 +143,24 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
                         try {
                             String sender = dataInputStream.readUTF();
                             fileNameLength = dataInputStream.readInt();
-//                            System.out.println("file length = " + fileNameLength);
                             // If the file exists
                             if (fileNameLength > 0) {
-                                // Byte array to hold name of file.
                                 byte[] fileNameBytes = new byte[fileNameLength];
-                                // Read from the input stream into the byte array.
                                 dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length);
-                                // Create the file name from the byte array.
                                 String fileName = new String(fileNameBytes);
-                                // Read how much data to expect for the actual content of the file.
                                 int fileContentLength = dataInputStream.readInt();
-                                // If the file exists.
                                 if (fileContentLength > 0) {
-                                    // Array to hold the file data.
                                     byte[] fileContentBytes = new byte[fileContentLength];
-                                    // Read from the input stream into the fileContentBytes array.
                                     dataInputStream.readFully(fileContentBytes, 0, fileContentBytes.length);
-                                    // save file to folder
-//                                    System.out.println("file name = "  + fileName);
-                                    System.out.println(username + " receive file " + fileName + " from " + sender);
-                                    File fileToDownload = new File(fileName);
-                                    FileOutputStream fileOutputStream = new FileOutputStream(fileToDownload);
-                                    // Write the actual file data to the file.
-                                    fileOutputStream.write(fileContentBytes);
-                                    // Close the stream.
-                                    fileOutputStream.close();
-                                    msgtextPane = messagePaneMap.get("All");
                                     if (!sender.equals(username)) {
-                                        msgtextPane.setText(msgtextPane.getText() + "\n" + sender + ": " + fileName + " (click to download)");
+                                        // save file to folder except the folder of sender
+                                        System.out.println(username + " receive file " + fileName + " from " + sender);
+                                        File fileToDownload = new File("Download\\" + username + "\\" + fileName);
+                                        FileOutputStream fileOutputStream = new FileOutputStream(fileToDownload);
+                                        fileOutputStream.write(fileContentBytes);
+                                        fileOutputStream.close();
+                                        msgtextPane = messagePaneMap.get("All");
+                                        msgtextPane.setText(msgtextPane.getText() + "\n" + sender + ": " + fileName + " (check your file in Download folder)");
                                         System.out.println(username + " receive file " + fileName + " from " + sender);
                                     }
                                 }
@@ -199,9 +188,17 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         }
     }
 
+    /**
+     * constructor with parameters
+     * @param username String
+     * @param socket Socket
+     * @param dataInputStream DataInputStream
+     * @param dataOutputStream DataOutputStream
+     * @param host String
+     * @param port String
+     */
     public ClientSide(String username, Socket socket, DataInputStream dataInputStream, DataOutputStream dataOutputStream, String host, String port) {
         Container container = this.getContentPane();
-        chattingList = new ArrayList<>();
         messagePaneMap = new HashMap<>();
         onlineUserList = new JComboBox<>();
         onlineUserList.addItem("All");
@@ -228,7 +225,6 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         portField = new JTextField(10);
         connectBtn = new JButton("Connected");
         logoutBtn = new JButton("Log out");
-
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -325,7 +321,11 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         receiveMessageThread.start();
     }
 
-
+    /**
+     * send private message to one user
+     * @param message String
+     * @param receiver String
+     */
     public void sendPrivateMsg(String message, String receiver) {
         try {
             dataOutputStream.writeUTF("!privatemessage");
@@ -339,6 +339,10 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         }
     }
 
+    /**
+     * send public message to all users
+     * @param message String
+     */
     public void sendPublicMsg(String message) {
         try {
             dataOutputStream.writeUTF("!publicmessage");
@@ -351,56 +355,27 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         }
     }
 
+    /**
+     * send private file to one user
+     * @param receiver String
+     * @param file File
+     */
     public void sendPrivateFile(String receiver, File file) {
         try {
-            // Create an input stream into the file you want to send.
             FileInputStream fileInputStream = new FileInputStream(file.getAbsolutePath());
-
-
-            // Get the name of the file you want to send and store it in filename.
             String fileName = file.getName();
-            // Convert the name of the file into an array of bytes to be sent to the server.
             byte[] fileNameBytes = fileName.getBytes();
-            // Create a byte array the size of the file so don't send too little or too much data to the server.
             byte[] fileBytes = new byte[(int) file.length()];
-            // Put the contents of the file into the array of bytes to be sent so these bytes can be sent to the server.
             fileInputStream.read(fileBytes);
             dataOutputStream.writeUTF("!privatefile");
             dataOutputStream.writeUTF(receiver);
-            // Send the length of the name of the file so server knows when to stop reading.
+            // file name length
             dataOutputStream.writeInt(fileNameBytes.length);
-            // Send the file name.
+            // file name.
             dataOutputStream.write(fileNameBytes);
-            // Send the length of the byte array so the server knows when to stop reading.
+            // file length
             dataOutputStream.writeInt(fileBytes.length);
-            // Send the actual file.
-            dataOutputStream.write(fileBytes);
-            dataOutputStream.flush();
-            msgtextPane.setText(msgtextPane.getText() + "\nYou: " + fileName);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-    public void sendPublicFile(File file) {
-        try {
-            // Create an input stream into the file you want to send.
-            FileInputStream fileInputStream = new FileInputStream(file.getAbsolutePath());
-            // Get the name of the file you want to send and store it in filename.
-            String fileName = file.getName();
-            // Convert the name of the file into an array of bytes to be sent to the server.
-            byte[] fileNameBytes = fileName.getBytes();
-            // Create a byte array the size of the file so don't send too little or too much data to the server.
-            byte[] fileBytes = new byte[(int) file.length()];
-            // Put the contents of the file into the array of bytes to be sent so these bytes can be sent to the server.
-            fileInputStream.read(fileBytes);
-            dataOutputStream.writeUTF("!publicfile");
-            // Send the length of the name of the file so server knows when to stop reading.
-            dataOutputStream.writeInt(fileNameBytes.length);
-            // Send the file name.
-            dataOutputStream.write(fileNameBytes);
-            // Send the length of the byte array so the server knows when to stop reading.
-            dataOutputStream.writeInt(fileBytes.length);
-            // Send the actual file.
+            // send file
             dataOutputStream.write(fileBytes);
             dataOutputStream.flush();
             msgtextPane.setText(msgtextPane.getText() + "\nYou: " + fileName);
@@ -409,6 +384,33 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         }
     }
 
+    /**
+     * send file to all users
+     * @param file File
+     */
+    public void sendPublicFile(File file) {
+        try {
+            FileInputStream fileInputStream = new FileInputStream(file.getAbsolutePath());
+            String fileName = file.getName();
+            byte[] fileNameBytes = fileName.getBytes();
+            byte[] fileBytes = new byte[(int) file.length()];
+            fileInputStream.read(fileBytes);
+            dataOutputStream.writeUTF("!publicfile");
+            dataOutputStream.writeInt(fileNameBytes.length);
+            dataOutputStream.write(fileNameBytes);
+            dataOutputStream.writeInt(fileBytes.length);
+            dataOutputStream.write(fileBytes);
+            dataOutputStream.flush();
+            msgtextPane.setText(msgtextPane.getText() + "\nYou: " + fileName);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    /**
+     * send logout request to server
+     * @param username String
+     */
     public void sendLogoutRequest(String username) {
         try {
             dataOutputStream.writeUTF("!logout");
@@ -419,7 +421,11 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         }
     }
 
-
+    /**
+     * check if one username is existing in list or not
+     * @param username String
+     * @return boolean
+     */
     public boolean isExistInList(String username) {
         for (int i = 0; i < onlineUserList.getItemCount(); i++) {
             if (onlineUserList.getItemAt(i).equals(username))
@@ -428,6 +434,10 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         return false;
     }
 
+    /**
+     * button handling
+     * @param e ActionEvent
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == sendBtn) {
@@ -442,16 +452,11 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
             } else {
                 this.sendPrivateMsg(message, receiver);
             }
-
             this.inputMsg.setText(""); // clear message after send
             System.out.println(username + " Sent " + message + " to " + receiver);
         } else if (e.getSource() == sendFileBtn) {
-
-            // Create a file chooser to open the dialog to choose a file.
             JFileChooser jFileChooser = new JFileChooser();
-            // Set the title of the dialog.
             jFileChooser.setDialogTitle("Choose a file to send.");
-            // Show the dialog and if a file is chosen from the file chooser execute the following statements.
             if (jFileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 // Get the selected file.
                 File fileToSend = jFileChooser.getSelectedFile();
@@ -467,6 +472,10 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
         }
     }
 
+    /**
+     * jcombobox handling
+     * @param e ItemEvent
+     */
     @Override
     public void itemStateChanged(ItemEvent e) {
         if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -485,6 +494,10 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
 
     }
 
+    /**
+     * closing window handling
+     * @param e WindowEvent
+     */
     @Override
     public void windowClosing(WindowEvent e) {
         this.sendLogoutRequest(username);
@@ -515,5 +528,4 @@ public class ClientSide extends JFrame implements ActionListener, ItemListener, 
     public void windowDeactivated(WindowEvent e) {
 
     }
-
 }

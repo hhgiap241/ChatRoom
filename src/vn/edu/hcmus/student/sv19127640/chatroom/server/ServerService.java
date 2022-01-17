@@ -1,35 +1,41 @@
 package vn.edu.hcmus.student.sv19127640.chatroom.server;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
 
 /**
  * vn.edu.hcmus.student.sv19127640.chatroom.server
  * Created by ADMIN
  * Date 1/2/2022 - 10:32 AM
- * Description: provide server for every login user
+ * Description: provide service for every login user
  */
 class ServerService implements Runnable {
+    /**
+     * attributes
+     */
     private Socket socket;
     private DataOutputStream dataOutputStream;
     private DataInputStream dataInputStream;
     private String username;
     private String password;
 
+    /**
+     * constructor with parameters
+     * @param username String
+     * @param password String
+     * @param socket Socket
+     * @throws IOException Exception
+     */
     public ServerService(String username, String password, Socket socket) throws IOException {
         this.socket = socket;
-
         this.username = username;
         this.password = password;
         this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
         this.dataInputStream = new DataInputStream(socket.getInputStream());
     }
 
-
+    /**
+     * thread
+     */
     @Override
     public void run() {
         while (true) {
@@ -67,21 +73,14 @@ class ServerService implements Runnable {
                     try {
                         String receiver = dataInputStream.readUTF();
                         fileNameLength = dataInputStream.readInt();
-                        // If the file exists
+                        // check if file name is > 0
                         if (fileNameLength > 0) {
-                            // Byte array to hold name of file.
                             byte[] fileNameBytes = new byte[fileNameLength];
-                            // Read from the input stream into the byte array.
                             dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length);
-                            // Create the file name from the byte array.
                             String fileName = new String(fileNameBytes);
-                            // Read how much data to expect for the actual content of the file.
                             int fileContentLength = dataInputStream.readInt();
-                            // If the file exists.
                             if (fileContentLength > 0) {
-                                // Array to hold the file data.
                                 byte[] fileContentBytes = new byte[fileContentLength];
-                                // Read from the input stream into the fileContentBytes array.
                                 dataInputStream.readFully(fileContentBytes, 0, fileContentBytes.length);
                                 System.out.println(username + " send " + fileName + " to " + receiver);
                                 for (ServerService service : ServerSide.userList) {
@@ -106,21 +105,13 @@ class ServerService implements Runnable {
                     int fileNameLength = 0;
                     try {
                         fileNameLength = dataInputStream.readInt();
-                        // If the file exists
                         if (fileNameLength > 0) {
-                            // Byte array to hold name of file.
                             byte[] fileNameBytes = new byte[fileNameLength];
-                            // Read from the input stream into the byte array.
                             dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length);
-                            // Create the file name from the byte array.
                             String fileName = new String(fileNameBytes);
-                            // Read how much data to expect for the actual content of the file.
                             int fileContentLength = dataInputStream.readInt();
-                            // If the file exists.
                             if (fileContentLength > 0) {
-                                // Array to hold the file data.
                                 byte[] fileContentBytes = new byte[fileContentLength];
-                                // Read from the input stream into the fileContentBytes array.
                                 dataInputStream.readFully(fileContentBytes, 0, fileContentBytes.length);
                                 System.out.println(username + " send " + fileName + " to all");
                                 for (ServerService service : ServerSide.userList) {
@@ -157,29 +148,48 @@ class ServerService implements Runnable {
         }
     }
 
+    /**
+     * getter socket
+     * @return Socket
+     */
     public Socket getSocket() {
         return socket;
     }
 
+    /**
+     * getter DataOutputStream
+     * @return DataOutputStream
+     */
     public DataOutputStream getDataOutputStream() {
         return dataOutputStream;
     }
 
+    /**
+     * getter DataInputStream
+     * @return DataInputStream
+     */
     public DataInputStream getDataInputStream() {
         return dataInputStream;
     }
 
+    /**
+     * getter username
+     * @return String
+     */
     public String getUsername() {
         return username;
     }
 
+    /**
+     * getter password
+     * @return String
+     */
     public String getPassword() {
         return password;
     }
 
     /**
      * close connection
-     *
      * @throws IOException exception
      */
     public void close() throws IOException {
